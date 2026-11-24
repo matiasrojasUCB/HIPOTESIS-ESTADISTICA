@@ -339,7 +339,7 @@
                                 </label>
 
                                 <div id="contenedor-tiempo-meses" class="flex items-center gap-3">
-                                    <input type="number" id="tiempoMeses" min="0.1" max="120" step="0.5" required class="w-48 text-sm bg-white border border-slate-300 rounded-lg px-3 py-2 text-slate-800 font-bold focus:ring-2 focus:ring-indigo-500 focus:outline-none" placeholder="Meses (ej: 4)">
+                                    <input type="number" id="tiempoMeses" min="0" max="120" step="any" class="w-48 text-sm bg-white border border-slate-300 rounded-lg px-3 py-2 text-slate-800 font-bold focus:ring-2 focus:ring-indigo-500 focus:outline-none" placeholder="Meses (ej: 4 u 8)">
                                     <span class="text-xs text-slate-500 font-medium">meses transcurridos</span>
                                 </div>
 
@@ -692,12 +692,12 @@ function setupEventListeners() {
         chkNunca.addEventListener('change', (e) => {
             if (e.target.checked) {
                 inpTiempo.value = '';
-                inpTiempo.removeAttribute('required');
-                boxTiempo.classList.add('hidden');
+                inpTiempo.disabled = true;
+                boxTiempo.classList.add('opacity-40', 'pointer-events-none');
                 msgNunca.classList.remove('hidden');
             } else {
-                inpTiempo.setAttribute('required', 'required');
-                boxTiempo.classList.remove('hidden');
+                inpTiempo.disabled = false;
+                boxTiempo.classList.remove('opacity-40', 'pointer-events-none');
                 msgNunca.classList.add('hidden');
             }
         });
@@ -780,9 +780,16 @@ function manejarEnvioFormulario(e) {
 
     let tiempoMeses = null;
     if (!nuncaTrabajo) {
-        tiempoMeses = parseFloat(document.getElementById('tiempoMeses').value);
-        if (isNaN(tiempoMeses) || tiempoMeses <= 0) {
-            alert('Por favor introduce un tiempo válido en meses (mayor a 0) o marca la casilla si el encuestado nunca ha trabajado.');
+        const strVal = document.getElementById('tiempoMeses').value.trim();
+        if (strVal === '') {
+            alert('Por favor indica cuántos meses tardó en conseguir su primer empleo, o marca la casilla si nunca ha tenido un empleo.');
+            document.getElementById('tiempoMeses').focus();
+            return;
+        }
+        tiempoMeses = parseFloat(strVal);
+        if (isNaN(tiempoMeses) || tiempoMeses < 0) {
+            alert('Por favor introduce un número válido de meses (0 o mayor).');
+            document.getElementById('tiempoMeses').focus();
             return;
         }
     }
@@ -868,9 +875,11 @@ function manejarEnvioFormulario(e) {
 
     // Reset formulario
     document.getElementById('form-encuesta').reset();
-    document.getElementById('contenedor-tiempo-meses').classList.remove('hidden');
+    const inpT = document.getElementById('tiempoMeses');
+    const boxT = document.getElementById('contenedor-tiempo-meses');
+    if (inpT) inpT.disabled = false;
+    if (boxT) boxT.classList.remove('opacity-40', 'pointer-events-none', 'hidden');
     document.getElementById('msg-nunca-trabajo').classList.add('hidden');
-    document.getElementById('tiempoMeses').setAttribute('required', 'required');
     const badgeP5 = document.getElementById('badge-p5-estado');
     if (badgeP5) {
         badgeP5.textContent = 'Responde Pregunta 1';
