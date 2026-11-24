@@ -227,26 +227,6 @@
                                 </div>
                             </div>
 
-                            <!-- P5 (Si P1 = Sí) -->
-                            <div id="seccion-empleado" class="hidden bg-emerald-50/50 p-3.5 rounded-lg border border-emerald-200">
-                                <label class="block text-xs font-bold text-emerald-950 mb-1">
-                                    5. Si actualmente trabaja, ¿su empleo es formal?
-                                </label>
-                                <p class="text-[11px] text-emerald-800 mb-2">
-                                    <i class="fas fa-info-circle"></i> <strong>Criterio formal:</strong> Cuenta con contrato/relación laboral formalizada o documentación que respalde la relación de trabajo.
-                                </p>
-                                <div class="flex items-center gap-6 text-sm">
-                                    <label class="flex items-center gap-2 cursor-pointer font-semibold text-emerald-900">
-                                        <input type="radio" name="p5" value="1" class="text-emerald-600 focus:ring-emerald-500 w-4 h-4">
-                                        <span>Sí, empleo formal (Éxito = 1)</span>
-                                    </label>
-                                    <label class="flex items-center gap-2 cursor-pointer font-semibold text-slate-700">
-                                        <input type="radio" name="p5" value="0" class="text-slate-600 focus:ring-slate-500 w-4 h-4">
-                                        <span>No, es informal (Fracaso = 0)</span>
-                                    </label>
-                                </div>
-                            </div>
-
                             <!-- P2, P3, P4 (Si P1 = No) -->
                             <div id="seccion-desempleado" class="hidden bg-amber-50/50 p-3.5 rounded-lg border border-amber-200 space-y-3">
                                 <div>
@@ -295,6 +275,35 @@
                                             <span>No disponible</span>
                                         </label>
                                     </div>
+                                </div>
+                            </div>
+
+                            <!-- P5: SIEMPRE VISIBLE (VARIABLE PRINCIPAL DE LA HIPÓTESIS: PRUEBA Z) -->
+                            <div id="seccion-p5" class="bg-indigo-50/50 p-4 rounded-xl border border-indigo-200 space-y-2">
+                                <div class="flex items-center justify-between">
+                                    <label class="block text-xs font-bold text-slate-900">
+                                        5. Si actualmente trabaja, ¿su empleo es formal? <span class="text-indigo-600">(Variable Principal de Hipótesis)</span>
+                                    </label>
+                                    <span id="badge-p5-estado" class="text-[11px] font-semibold text-slate-500 bg-white px-2 py-0.5 rounded border">
+                                        Responde Pregunta 1
+                                    </span>
+                                </div>
+                                <p class="text-[11px] text-slate-600">
+                                    <i class="fas fa-info-circle text-indigo-500"></i> <strong>Definición del estudio:</strong> Empleo formal = contrato o documentación legal que respalde la relación laboral. Si no trabaja, se computa como "No corresponde" (0 para la prueba Z).
+                                </p>
+                                <div class="grid grid-cols-1 sm:grid-cols-3 gap-2 pt-1 text-xs">
+                                    <label class="flex items-center gap-2 p-2 rounded-lg bg-white border border-slate-200 cursor-pointer hover:border-emerald-400 font-semibold text-emerald-800">
+                                        <input type="radio" name="p5" value="1" class="text-emerald-600 focus:ring-emerald-500">
+                                        <span>Sí, empleo formal (Éxito = 1)</span>
+                                    </label>
+                                    <label class="flex items-center gap-2 p-2 rounded-lg bg-white border border-slate-200 cursor-pointer hover:border-slate-400 font-semibold text-slate-700">
+                                        <input type="radio" name="p5" value="0" class="text-slate-600 focus:ring-slate-500">
+                                        <span>No, es informal (Fracaso = 0)</span>
+                                    </label>
+                                    <label class="flex items-center gap-2 p-2 rounded-lg bg-white border border-slate-200 cursor-pointer hover:border-amber-400 font-semibold text-amber-800">
+                                        <input type="radio" name="p5" value="no_corresponde" class="text-amber-600 focus:ring-amber-500">
+                                        <span>No corresponde / No trabaja (0)</span>
+                                    </label>
                                 </div>
                             </div>
                         </div>
@@ -613,16 +622,28 @@ function setupEventListeners() {
         r.addEventListener('change', (e) => {
             const trabaja = e.target.value === '1';
             const divDesempleado = document.getElementById('seccion-desempleado');
-            const divEmpleado = document.getElementById('seccion-empleado');
+            const badgeP5 = document.getElementById('badge-p5-estado');
+            const p5NoCorresponde = document.querySelector('input[name="p5"][value="no_corresponde"]');
             
             if (trabaja) {
                 divDesempleado.classList.add('hidden');
-                divEmpleado.classList.remove('hidden');
                 limpiarRadios(['p2', 'p3', 'p4']);
+                if (badgeP5) {
+                    badgeP5.textContent = 'Indicar: Formal (1) o Informal (0)';
+                    badgeP5.className = 'text-[11px] font-semibold text-emerald-800 bg-emerald-100 px-2 py-0.5 rounded border border-emerald-300';
+                }
+                if (p5NoCorresponde && p5NoCorresponde.checked) {
+                    p5NoCorresponde.checked = false;
+                }
             } else {
                 divDesempleado.classList.remove('hidden');
-                divEmpleado.classList.add('hidden');
-                limpiarRadios(['p5']);
+                if (p5NoCorresponde) {
+                    p5NoCorresponde.checked = true;
+                }
+                if (badgeP5) {
+                    badgeP5.textContent = 'Auto: No corresponde (0 en hipótesis)';
+                    badgeP5.className = 'text-[11px] font-semibold text-amber-800 bg-amber-100 px-2 py-0.5 rounded border border-amber-300';
+                }
             }
             calcularClasificacionPrevia();
         });
@@ -770,8 +791,8 @@ function manejarEnvioFormulario(e) {
     if (p1 === 1) {
         clasificacion = 'EMPLEADO';
         const p5El = document.querySelector('input[name="p5"]:checked');
-        if (!p5El) {
-            alert('Por favor responde la Pregunta 5 (¿Su empleo es formal?).');
+        if (!p5El || p5El.value === 'no_corresponde') {
+            alert('El encuestado trabaja actualmente: por favor selecciona si su empleo es Formal (1) o Informal (0) en la Pregunta 5.');
             return;
         }
         p5 = parseInt(p5El.value);
@@ -794,7 +815,7 @@ function manejarEnvioFormulario(e) {
         } else {
             clasificacion = 'INACTIVO_LABORAL';
         }
-        p5 = 0; // Sin empleo formal (cuenta como fracaso para la hipótesis de empleo formal)
+        p5 = 0; // Sin empleo formal (cuenta legítimamente como 0 para la hipótesis de empleo formal)
     }
 
     const nuevaEncuesta = {
@@ -821,10 +842,14 @@ function manejarEnvioFormulario(e) {
     // Reset formulario
     document.getElementById('form-encuesta').reset();
     document.getElementById('seccion-desempleado').classList.add('hidden');
-    document.getElementById('seccion-empleado').classList.add('hidden');
     document.getElementById('contenedor-tiempo-meses').classList.remove('hidden');
     document.getElementById('msg-nunca-trabajo').classList.add('hidden');
     document.getElementById('tiempoMeses').setAttribute('required', 'required');
+    const badgeP5 = document.getElementById('badge-p5-estado');
+    if (badgeP5) {
+        badgeP5.textContent = 'Responde Pregunta 1';
+        badgeP5.className = 'text-[11px] font-semibold text-slate-500 bg-white px-2 py-0.5 rounded border';
+    }
     calcularClasificacionPrevia();
     sugerirCodigo();
 
