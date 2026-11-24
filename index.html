@@ -204,105 +204,120 @@
                             </div>
                         </div>
 
-                        <!-- Sección 2: Situación Laboral (P1 a P5) -->
+                        <!-- Sección 2: Preguntas de Situación Laboral (Cuestionario Completo Oficial) -->
                         <div class="bg-slate-50/70 p-4 rounded-xl border border-slate-200/80 space-y-4">
-                            <h4 class="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-1.5">
-                                <i class="fas fa-briefcase text-slate-400"></i> 2. Preguntas de Situación Laboral (Encuesta Piloto)
-                            </h4>
+                            <div class="flex items-center justify-between border-b pb-2">
+                                <h4 class="text-xs font-bold uppercase tracking-wider text-slate-700 flex items-center gap-1.5">
+                                    <i class="fas fa-clipboard-list text-indigo-600"></i> 2. Preguntas para Identificar la Situación Laboral (1 al 5)
+                                </h4>
+                                <span class="text-[11px] text-slate-500 font-medium italic">Todas las preguntas del instrumento</span>
+                            </div>
 
-                            <!-- P1 -->
+                            <!-- PREGUNTA 1 -->
                             <div class="bg-white p-3.5 rounded-lg border border-slate-200">
                                 <label class="block text-xs font-bold text-slate-900 mb-2">
                                     1. ¿Actualmente cuenta con algún trabajo remunerado?
                                 </label>
-                                <div class="flex items-center gap-6 text-sm">
-                                    <label class="flex items-center gap-2 cursor-pointer font-medium text-emerald-800">
+                                <div class="flex flex-wrap items-center gap-6 text-xs sm:text-sm">
+                                    <label class="flex items-center gap-2 cursor-pointer font-semibold text-emerald-800 bg-emerald-50/60 px-3 py-1.5 rounded-lg border border-emerald-200 hover:bg-emerald-100/60 transition">
                                         <input type="radio" name="p1" value="1" class="text-indigo-600 focus:ring-indigo-500 w-4 h-4" required>
-                                        <span>Sí (Trabaja actualmente)</span>
+                                        <span>• Sí.</span>
                                     </label>
-                                    <label class="flex items-center gap-2 cursor-pointer font-medium text-rose-800">
+                                    <label class="flex items-center gap-2 cursor-pointer font-semibold text-rose-800 bg-rose-50/60 px-3 py-1.5 rounded-lg border border-rose-200 hover:bg-rose-100/60 transition">
                                         <input type="radio" name="p1" value="0" class="text-indigo-600 focus:ring-indigo-500 w-4 h-4">
-                                        <span>No (No trabaja)</span>
+                                        <span>• No.</span>
                                     </label>
                                 </div>
                             </div>
 
-                            <!-- P2, P3, P4 (Si P1 = No) -->
-                            <div id="seccion-desempleado" class="hidden bg-amber-50/50 p-3.5 rounded-lg border border-amber-200 space-y-3">
-                                <div>
-                                    <label class="block text-xs font-bold text-amber-950 mb-1.5">
-                                        2. Si respondió NO, ¿se encuentra buscando trabajo actualmente?
+                            <!-- PREGUNTA 2 -->
+                            <div class="bg-white p-3.5 rounded-lg border border-slate-200">
+                                <label class="block text-xs font-bold text-slate-900 mb-2">
+                                    2. Si respondió NO, ¿se encuentra buscando trabajo actualmente?
+                                </label>
+                                <div class="grid grid-cols-1 sm:grid-cols-3 gap-2 text-xs">
+                                    <label class="flex items-center gap-2 cursor-pointer p-2 rounded-lg border border-slate-200 hover:bg-slate-50 text-slate-800">
+                                        <input type="radio" name="p2" value="1" class="text-indigo-600 focus:ring-indigo-500">
+                                        <span>• Sí, estoy buscando trabajo activamente.</span>
                                     </label>
-                                    <div class="flex items-center gap-6 text-xs sm:text-sm">
-                                        <label class="flex items-center gap-1.5 cursor-pointer text-slate-800">
-                                            <input type="radio" name="p2" value="1" class="text-amber-600 focus:ring-amber-500">
-                                            <span>Sí, buscando activamente</span>
-                                        </label>
-                                        <label class="flex items-center gap-1.5 cursor-pointer text-slate-800">
-                                            <input type="radio" name="p2" value="0" class="text-amber-600 focus:ring-amber-500">
-                                            <span>No, no estoy buscando</span>
-                                        </label>
-                                    </div>
-                                </div>
-
-                                <div class="pt-2 border-t border-amber-200/60">
-                                    <label class="block text-xs font-bold text-amber-950 mb-1.5">
-                                        3. ¿Ha realizado alguna actividad para conseguir empleo en las últimas 4 semanas?
+                                    <label class="flex items-center gap-2 cursor-pointer p-2 rounded-lg border border-slate-200 hover:bg-slate-50 text-slate-800">
+                                        <input type="radio" name="p2" value="0" class="text-indigo-600 focus:ring-indigo-500">
+                                        <span>• No, no estoy buscando trabajo actualmente.</span>
                                     </label>
-                                    <div class="flex items-center gap-6 text-xs sm:text-sm">
-                                        <label class="flex items-center gap-1.5 cursor-pointer text-slate-800">
-                                            <input type="radio" name="p3" value="1" class="text-amber-600 focus:ring-amber-500">
-                                            <span>Sí (CV, entrevistas, contacto)</span>
-                                        </label>
-                                        <label class="flex items-center gap-1.5 cursor-pointer text-slate-800">
-                                            <input type="radio" name="p3" value="0" class="text-amber-600 focus:ring-amber-500">
-                                            <span>No</span>
-                                        </label>
-                                    </div>
-                                </div>
-
-                                <div class="pt-2 border-t border-amber-200/60">
-                                    <label class="block text-xs font-bold text-amber-950 mb-1.5">
-                                        4. Si actualmente no trabaja, ¿estaría disponible para comenzar a trabajar?
+                                    <label class="flex items-center gap-2 cursor-pointer p-2 rounded-lg border border-slate-200 bg-slate-50 text-slate-500">
+                                        <input type="radio" name="p2" value="no_corresponde" class="text-slate-500 focus:ring-slate-400">
+                                        <span>• No corresponde (Tiene trabajo).</span>
                                     </label>
-                                    <div class="flex items-center gap-6 text-xs sm:text-sm">
-                                        <label class="flex items-center gap-1.5 cursor-pointer text-slate-800">
-                                            <input type="radio" name="p4" value="1" class="text-amber-600 focus:ring-amber-500">
-                                            <span>Sí, disponible</span>
-                                        </label>
-                                        <label class="flex items-center gap-1.5 cursor-pointer text-slate-800">
-                                            <input type="radio" name="p4" value="0" class="text-amber-600 focus:ring-amber-500">
-                                            <span>No disponible</span>
-                                        </label>
-                                    </div>
                                 </div>
                             </div>
 
-                            <!-- P5: SIEMPRE VISIBLE (VARIABLE PRINCIPAL DE LA HIPÓTESIS: PRUEBA Z) -->
-                            <div id="seccion-p5" class="bg-indigo-50/50 p-4 rounded-xl border border-indigo-200 space-y-2">
-                                <div class="flex items-center justify-between">
-                                    <label class="block text-xs font-bold text-slate-900">
-                                        5. Si actualmente trabaja, ¿su empleo es formal? <span class="text-indigo-600">(Variable Principal de Hipótesis)</span>
+                            <!-- PREGUNTA 3 -->
+                            <div class="bg-white p-3.5 rounded-lg border border-slate-200">
+                                <label class="block text-xs font-bold text-slate-900 mb-2">
+                                    3. Si está buscando trabajo, ¿ha realizado alguna actividad para conseguir empleo durante las últimas cuatro semanas (envío de currículums, postulaciones, entrevistas o contacto con empresas)?
+                                </label>
+                                <div class="grid grid-cols-1 sm:grid-cols-3 gap-2 text-xs">
+                                    <label class="flex items-center gap-2 cursor-pointer p-2 rounded-lg border border-slate-200 hover:bg-slate-50 text-slate-800">
+                                        <input type="radio" name="p3" value="1" class="text-indigo-600 focus:ring-indigo-500">
+                                        <span>• Sí.</span>
                                     </label>
-                                    <span id="badge-p5-estado" class="text-[11px] font-semibold text-slate-500 bg-white px-2 py-0.5 rounded border">
+                                    <label class="flex items-center gap-2 cursor-pointer p-2 rounded-lg border border-slate-200 hover:bg-slate-50 text-slate-800">
+                                        <input type="radio" name="p3" value="0" class="text-indigo-600 focus:ring-indigo-500">
+                                        <span>• No.</span>
+                                    </label>
+                                    <label class="flex items-center gap-2 cursor-pointer p-2 rounded-lg border border-slate-200 bg-slate-50 text-slate-500">
+                                        <input type="radio" name="p3" value="no_corresponde" class="text-slate-500 focus:ring-slate-400">
+                                        <span>• No corresponde.</span>
+                                    </label>
+                                </div>
+                            </div>
+
+                            <!-- PREGUNTA 4 -->
+                            <div class="bg-white p-3.5 rounded-lg border border-slate-200">
+                                <label class="block text-xs font-bold text-slate-900 mb-2">
+                                    4. Si actualmente no trabaja, ¿estaría disponible para comenzar a trabajar?
+                                </label>
+                                <div class="grid grid-cols-1 sm:grid-cols-3 gap-2 text-xs">
+                                    <label class="flex items-center gap-2 cursor-pointer p-2 rounded-lg border border-slate-200 hover:bg-slate-50 text-slate-800">
+                                        <input type="radio" name="p4" value="1" class="text-indigo-600 focus:ring-indigo-500">
+                                        <span>• Sí.</span>
+                                    </label>
+                                    <label class="flex items-center gap-2 cursor-pointer p-2 rounded-lg border border-slate-200 hover:bg-slate-50 text-slate-800">
+                                        <input type="radio" name="p4" value="0" class="text-indigo-600 focus:ring-indigo-500">
+                                        <span>• No.</span>
+                                    </label>
+                                    <label class="flex items-center gap-2 cursor-pointer p-2 rounded-lg border border-slate-200 bg-slate-50 text-slate-500">
+                                        <input type="radio" name="p4" value="no_corresponde" class="text-slate-500 focus:ring-slate-400">
+                                        <span>• No corresponde.</span>
+                                    </label>
+                                </div>
+                            </div>
+
+                            <!-- PREGUNTA 5 -->
+                            <div class="bg-indigo-50/60 p-3.5 rounded-lg border border-indigo-200">
+                                <div class="flex items-center justify-between mb-1.5">
+                                    <label class="block text-xs font-bold text-indigo-950">
+                                        5. Si actualmente trabaja, ¿su empleo es formal? <span class="text-indigo-700">(Variable Principal de Hipótesis: H₀ vs H₁)</span>
+                                    </label>
+                                    <span id="badge-p5-estado" class="text-[11px] font-semibold text-slate-600 bg-white px-2 py-0.5 rounded border border-indigo-200">
                                         Responde Pregunta 1
                                     </span>
                                 </div>
-                                <p class="text-[11px] text-slate-600">
-                                    <i class="fas fa-info-circle text-indigo-500"></i> <strong>Definición del estudio:</strong> Empleo formal = contrato o documentación legal que respalde la relación laboral. Si no trabaja, se computa como "No corresponde" (0 para la prueba Z).
+                                <p class="text-[11px] text-indigo-900/80 mb-2">
+                                    • Relación laboral formalizada con contrato o documentación legal de respaldo.
                                 </p>
-                                <div class="grid grid-cols-1 sm:grid-cols-3 gap-2 pt-1 text-xs">
-                                    <label class="flex items-center gap-2 p-2 rounded-lg bg-white border border-slate-200 cursor-pointer hover:border-emerald-400 font-semibold text-emerald-800">
+                                <div class="grid grid-cols-1 sm:grid-cols-3 gap-2 text-xs">
+                                    <label class="flex items-center gap-2 cursor-pointer p-2 rounded-lg bg-white border border-slate-200 hover:border-emerald-500 font-semibold text-emerald-800">
                                         <input type="radio" name="p5" value="1" class="text-emerald-600 focus:ring-emerald-500">
-                                        <span>Sí, empleo formal (Éxito = 1)</span>
+                                        <span>• Sí (Formal = Éxito 1).</span>
                                     </label>
-                                    <label class="flex items-center gap-2 p-2 rounded-lg bg-white border border-slate-200 cursor-pointer hover:border-slate-400 font-semibold text-slate-700">
+                                    <label class="flex items-center gap-2 cursor-pointer p-2 rounded-lg bg-white border border-slate-200 hover:border-slate-500 font-semibold text-slate-700">
                                         <input type="radio" name="p5" value="0" class="text-slate-600 focus:ring-slate-500">
-                                        <span>No, es informal (Fracaso = 0)</span>
+                                        <span>• No (Informal = Fracaso 0).</span>
                                     </label>
-                                    <label class="flex items-center gap-2 p-2 rounded-lg bg-white border border-slate-200 cursor-pointer hover:border-amber-400 font-semibold text-amber-800">
+                                    <label class="flex items-center gap-2 cursor-pointer p-2 rounded-lg bg-white border border-slate-200 hover:border-amber-500 font-semibold text-amber-800">
                                         <input type="radio" name="p5" value="no_corresponde" class="text-amber-600 focus:ring-amber-500">
-                                        <span>No corresponde / No trabaja (0)</span>
+                                        <span>• No corresponde.</span>
                                     </label>
                                 </div>
                             </div>
@@ -616,18 +631,24 @@ function guardarEnStorage() {
 
 // Configuración de listeners
 function setupEventListeners() {
-    // Control de condicionales de P1
+    // Control de flujo para las 5 preguntas oficiales
     const p1Radios = document.querySelectorAll('input[name="p1"]');
     p1Radios.forEach(r => {
         r.addEventListener('change', (e) => {
             const trabaja = e.target.value === '1';
-            const divDesempleado = document.getElementById('seccion-desempleado');
             const badgeP5 = document.getElementById('badge-p5-estado');
+            const p2NoCorresponde = document.querySelector('input[name="p2"][value="no_corresponde"]');
+            const p3NoCorresponde = document.querySelector('input[name="p3"][value="no_corresponde"]');
+            const p4NoCorresponde = document.querySelector('input[name="p4"][value="no_corresponde"]');
             const p5NoCorresponde = document.querySelector('input[name="p5"][value="no_corresponde"]');
             
             if (trabaja) {
-                divDesempleado.classList.add('hidden');
-                limpiarRadios(['p2', 'p3', 'p4']);
+                // Si trabaja: P2, P3 y P4 se marcan en No corresponde
+                if (p2NoCorresponde) p2NoCorresponde.checked = true;
+                if (p3NoCorresponde) p3NoCorresponde.checked = true;
+                if (p4NoCorresponde) p4NoCorresponde.checked = true;
+
+                // En P5: pedir que responda si es formal o informal
                 if (badgeP5) {
                     badgeP5.textContent = 'Indicar: Formal (1) o Informal (0)';
                     badgeP5.className = 'text-[11px] font-semibold text-emerald-800 bg-emerald-100 px-2 py-0.5 rounded border border-emerald-300';
@@ -636,7 +657,13 @@ function setupEventListeners() {
                     p5NoCorresponde.checked = false;
                 }
             } else {
-                divDesempleado.classList.remove('hidden');
+                // Si no trabaja: desmarcar No corresponde en P2, P3, P4 para que responda
+                ['p2', 'p3', 'p4'].forEach(name => {
+                    const noCorr = document.querySelector(`input[name="${name}"][value="no_corresponde"]`);
+                    if (noCorr && noCorr.checked) noCorr.checked = false;
+                });
+
+                // En P5: marcar automáticamente No corresponde
                 if (p5NoCorresponde) {
                     p5NoCorresponde.checked = true;
                 }
@@ -719,7 +746,7 @@ function calcularClasificacionPrevia() {
         if (p2 === '1' && p3 === '1' && p4 === '1') {
             badge.textContent = 'DESEMPLEADO ACTIVO (Criterio de estudio cumplido)';
             badge.className = 'px-3 py-1 text-xs font-semibold rounded-full bg-amber-100 text-amber-800 border border-amber-300';
-        } else if (p2 !== undefined || p3 !== undefined || p4 !== undefined) {
+        } else if (p2 === '0' || p3 === '0' || p4 === '0') {
             badge.textContent = 'INACTIVO LABORAL (No busca activamente o no disponible)';
             badge.className = 'px-3 py-1 text-xs font-semibold rounded-full bg-slate-200 text-slate-700 border border-slate-300';
         } else {
@@ -841,60 +868,14 @@ function manejarEnvioFormulario(e) {
 
     // Reset formulario
     document.getElementById('form-encuesta').reset();
-    document.getElementById('seccion-desempleado').classList.add('hidden');
     document.getElementById('contenedor-tiempo-meses').classList.remove('hidden');
     document.getElementById('msg-nunca-trabajo').classList.add('hidden');
     document.getElementById('tiempoMeses').setAttribute('required', 'required');
     const badgeP5 = document.getElementById('badge-p5-estado');
     if (badgeP5) {
         badgeP5.textContent = 'Responde Pregunta 1';
-        badgeP5.className = 'text-[11px] font-semibold text-slate-500 bg-white px-2 py-0.5 rounded border';
+        badgeP5.className = 'text-[11px] font-semibold text-slate-500 bg-white px-2 py-0.5 rounded border border-indigo-200';
     }
-    calcularClasificacionPrevia();
-    sugerirCodigo();
-
-    mostrarNotificacion('¡Encuesta guardada con éxito!', 'success');
-}
-            return;
-        }
-
-        p2 = parseInt(p2El.value);
-        p3 = parseInt(p3El.value);
-        p4 = parseInt(p4El.value);
-
-        if (p2 === 1 && p3 === 1 && p4 === 1) {
-            clasificacion = 'DESEMPLEADO_ACTIVO';
-        } else {
-            clasificacion = 'INACTIVO_LABORAL';
-        }
-        p5 = 0;
-    }
-
-    const nuevaEncuesta = {
-        id: Date.now(),
-        codigo: codigo || `SUJ-${encuestas.length + 1}`,
-        encuestador,
-        carrera: carrera || 'No especificada',
-        residencia,
-        grupo,
-        aniosEgreso,
-        p1,
-        p2,
-        p3,
-        p4,
-        p5,
-        clasificacion,
-        tiempoMeses,
-        fecha: new Date().toISOString().split('T')[0]
-    };
-
-    encuestas.push(nuevaEncuesta);
-    guardarEnStorage();
-
-    // Reset formulario
-    document.getElementById('form-encuesta').reset();
-    document.getElementById('seccion-desempleado').classList.add('hidden');
-    document.getElementById('seccion-empleado').classList.add('hidden');
     calcularClasificacionPrevia();
     sugerirCodigo();
 
