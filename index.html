@@ -1068,13 +1068,6 @@ function renderizarTabla() {
             clasifBadge = '<span class="text-xs font-medium text-slate-500 bg-slate-100 px-2 py-0.5 rounded">Inactivo Laboral</span>';
         }
 
-        return `
-            <tr class="hover:bg-slate-50 transition border-b border-slate-100 text-sm">
-                <td class="py-3 px-3 font-semibold text-slate-800">${e.codigo}</td>
-                <td class="py-3 px-3">${grupoBadge}</td>
-                <td class="py-3 px-3 font-medium text-slate-700">${e.carrera}</td>
-                <td class="py-3 px-3">${clasifBadge}</td>
-                <td class="py-3 px-3">${formalBadge}</td>
         const tiempoBadge = (e.tiempoMeses !== null && e.tiempoMeses !== undefined && !isNaN(e.tiempoMeses))
             ? `<span class="font-bold text-slate-800">${e.tiempoMeses} meses</span>`
             : `<span class="inline-flex items-center gap-1 text-[11px] font-semibold text-amber-800 bg-amber-50 px-2 py-0.5 rounded border border-amber-200">Aún sin 1er empleo (NA)</span>`;
