@@ -1,0 +1,557 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Recolección de Datos - Inserción Laboral UCB Cochabamba</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        body { font-family: 'Inter', sans-serif; }
+    </style>
+</head>
+<body class="bg-slate-100 text-slate-800 min-h-screen flex flex-col">
+
+    <!-- HEADER / CABECERA ACADÉMICA -->
+    <header class="bg-white border-b border-slate-200 sticky top-0 z-40 shadow-sm">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3">
+            <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                <div class="flex items-center gap-3">
+                    <div class="w-12 h-12 bg-blue-900 text-amber-400 rounded-xl flex items-center justify-center font-bold text-xl shadow-inner">
+                        <i class="fas fa-graduation-cap"></i>
+                    </div>
+                    <div>
+                        <div class="flex items-center gap-2">
+                            <span class="text-xs uppercase font-extrabold tracking-wider text-blue-900">UCB Cochabamba</span>
+                            <span class="text-xs bg-blue-100 text-blue-800 px-2 py-0.5 rounded font-semibold">Probabilidad y Estadística</span>
+                        </div>
+                        <h1 class="text-lg font-bold text-slate-900 leading-tight">Comparación de Oportunidades de Empleo en Cochabamba</h1>
+                        <p class="text-xs text-slate-500">Recién graduados (0-2 años) vs Profesionales con mayor trayectoria (>5 años)</p>
+                    </div>
+                </div>
+
+                <!-- Botones de Acción Rápida -->
+                <div class="flex items-center gap-2">
+                    <button onclick="cargarSimulados()" class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg bg-amber-50 text-amber-800 border border-amber-300 hover:bg-amber-100 transition shadow-sm" title="Cargar los 60 datos de prueba del documento">
+                        <i class="fas fa-flask"></i> Cargar Datos Simulados (n=60)
+                    </button>
+                    <button onclick="exportarCSV()" class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg bg-emerald-600 text-white hover:bg-emerald-700 transition shadow-sm">
+                        <i class="fas fa-file-excel"></i> Exportar a Excel (CSV)
+                    </button>
+                </div>
+            </div>
+
+            <!-- Meta e Info del Equipo -->
+            <div class="mt-3 pt-3 border-t border-slate-100 flex flex-wrap items-center justify-between text-xs text-slate-600 gap-2">
+                <div>
+                    <span class="font-semibold text-slate-700">Docente:</span> Ayma Romay Ariel Isaias | 
+                    <span class="font-semibold text-slate-700">Equipo:</span> Ignacio Miranda, Matias Rojas, Daniel Rojas, Mateo Ulloa, Diego Arias
+                </div>
+                <div class="flex items-center gap-3">
+                    <span class="inline-flex items-center gap-1 text-slate-500"><i class="fas fa-map-marker-alt text-rose-500"></i> Cochabamba, Bolivia</span>
+                    <span class="inline-flex items-center gap-1 text-slate-500"><i class="fas fa-calendar-alt text-blue-500"></i> Noviembre 2026</span>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- BARRA DE MONITOREO DE MUESTRA (META: 37 Y 37 = 74) -->
+    <section class="bg-gradient-to-r from-blue-900 via-indigo-900 to-slate-900 text-white py-5 shadow-inner">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
+                <div>
+                    <span class="text-xs uppercase tracking-widest font-bold text-amber-400">Progreso de la Muestra Ajustada</span>
+                    <h2 class="text-xl font-bold flex items-center gap-2">
+                        Control de Recolección en Cochabamba
+                        <span class="text-xs font-normal bg-indigo-800/80 px-2.5 py-1 rounded-full border border-indigo-600">Meta: 74 encuestas (37 por grupo)</span>
+                    </h2>
+                    <p class="text-xs text-indigo-200 mt-1">Nivel de Confianza: 95% (Zα = 1.645 unilateral) | Potencia: 80% | Margen +10% por encuestas inválidas</p>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 lg:w-7/12">
+                    <!-- G1: Recién Egresados -->
+                    <div class="bg-white/10 backdrop-blur-md rounded-xl p-3 border border-white/15">
+                        <div class="flex justify-between items-center text-xs mb-1.5">
+                            <span class="font-semibold text-sky-200">G1: Recién Egresados (0-2a)</span>
+                            <span id="count-g1" class="font-bold text-white">0 / 37 (0%)</span>
+                        </div>
+                        <div class="w-full bg-black/30 rounded-full h-2.5 overflow-hidden">
+                            <div id="bar-g1" class="bg-sky-400 h-2.5 rounded-full transition-all duration-500" style="width: 0%"></div>
+                        </div>
+                    </div>
+
+                    <!-- G2: > 5 años -->
+                    <div class="bg-white/10 backdrop-blur-md rounded-xl p-3 border border-white/15">
+                        <div class="flex justify-between items-center text-xs mb-1.5">
+                            <span class="font-semibold text-indigo-200">G2: Trayectoria (>5 años)</span>
+                            <span id="count-g2" class="font-bold text-white">0 / 37 (0%)</span>
+                        </div>
+                        <div class="w-full bg-black/30 rounded-full h-2.5 overflow-hidden">
+                            <div id="bar-g2" class="bg-indigo-400 h-2.5 rounded-full transition-all duration-500" style="width: 0%"></div>
+                        </div>
+                    </div>
+
+                    <!-- Total Muestra -->
+                    <div class="bg-white/10 backdrop-blur-md rounded-xl p-3 border border-white/15">
+                        <div class="flex justify-between items-center text-xs mb-1.5">
+                            <span class="font-semibold text-emerald-200">Muestra Total Ajustada</span>
+                            <span id="count-total" class="font-bold text-white">0 / 74 (0%)</span>
+                        </div>
+                        <div class="w-full bg-black/30 rounded-full h-2.5 overflow-hidden">
+                            <div id="bar-total" class="bg-emerald-400 h-2.5 rounded-full transition-all duration-500" style="width: 0%"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- NAVEGACIÓN POR PESTAÑAS -->
+    <div class="bg-white border-b border-slate-200 shadow-sm">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <nav class="flex space-x-6 text-sm">
+                <button id="btn-tab-formulario" onclick="cambiarPestana('formulario')" class="tab-btn py-3 px-1 border-b-2 border-indigo-600 font-bold text-indigo-600 flex items-center gap-2">
+                    <i class="fas fa-clipboard-check"></i> Formulario de Recolección
+                </button>
+                <button id="btn-tab-tabla" onclick="cambiarPestana('tabla')" class="tab-btn py-3 px-1 border-b-2 border-transparent text-slate-500 hover:text-slate-700 flex items-center gap-2">
+                    <i class="fas fa-database"></i> Base de Datos & Registros
+                </button>
+                <button id="btn-tab-estadisticas" onclick="cambiarPestana('estadisticas')" class="tab-btn py-3 px-1 border-b-2 border-transparent text-slate-500 hover:text-slate-700 flex items-center gap-2">
+                    <i class="fas fa-chart-line"></i> Análisis de Hipótesis en Vivo
+                </button>
+                <button id="btn-tab-exportar" onclick="cambiarPestana('exportar')" class="tab-btn py-3 px-1 border-b-2 border-transparent text-slate-500 hover:text-slate-700 flex items-center gap-2">
+                    <i class="fas fa-code"></i> Script R & Respaldos
+                </button>
+            </nav>
+        </div>
+    </div>
+
+    <!-- CONTENIDO PRINCIPAL -->
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 flex-1">
+
+        <!-- ========================================== -->
+        <!-- PESTAÑA 1: FORMULARIO DE RECOLECCIÓN       -->
+        <!-- ========================================== -->
+        <div id="tab-formulario" class="tab-content">
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+                <!-- Formulario Principal -->
+                <div class="lg:col-span-2 bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
+                    <div class="flex items-center justify-between pb-4 mb-4 border-b border-slate-100">
+                        <div>
+                            <h3 class="text-base font-bold text-slate-900 flex items-center gap-2">
+                                <i class="fas fa-user-edit text-indigo-600"></i> Registro de Encuesta Individual
+                            </h3>
+                            <p class="text-xs text-slate-500">Ingresa las respuestas del profesional encuestado en Cochabamba</p>
+                        </div>
+                        <span id="badge-clasificacion" class="px-3 py-1 text-xs font-semibold rounded-full bg-slate-100 text-slate-600 border">
+                            Pendiente de respuestas
+                        </span>
+                    </div>
+
+                    <form id="form-encuesta" class="space-y-5">
+
+                        <!-- Sección 1: Datos de Control y Grupo -->
+                        <div class="bg-slate-50/70 p-4 rounded-xl border border-slate-200/80 space-y-4">
+                            <h4 class="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-1.5">
+                                <i class="fas fa-id-card text-slate-400"></i> 1. Identificación y Criterios de Inclusión
+                            </h4>
+
+                            <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                                <div>
+                                    <label class="block text-xs font-semibold text-slate-700 mb-1">Código del Sujeto</label>
+                                    <input type="text" id="codigo" required class="w-full text-sm bg-white border border-slate-300 rounded-lg px-3 py-2 font-mono font-bold text-indigo-900 focus:ring-2 focus:ring-indigo-500 focus:outline-none" placeholder="RE-01 o EXP-01">
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-semibold text-slate-700 mb-1">Encuestador (Estudiante)</label>
+                                    <select id="encuestador" class="w-full text-sm bg-white border border-slate-300 rounded-lg px-3 py-2 text-slate-800 focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+                                        <option value="Ignacio Miranda Lara">Ignacio Miranda Lara</option>
+                                        <option value="Matias Rojas Delgadillo">Matias Rojas Delgadillo</option>
+                                        <option value="Daniel Rojas">Daniel Rojas</option>
+                                        <option value="Mateo Ulloa">Mateo Ulloa</option>
+                                        <option value="Diego Arias">Diego Arias</option>
+                                        <option value="Otro">Otro colaborador</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-semibold text-slate-700 mb-1">Residencia (Obligatorio)</label>
+                                    <select id="residencia" class="w-full text-sm bg-white border border-slate-300 rounded-lg px-3 py-2 text-slate-800 focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+                                        <option value="Cochabamba">Cochabamba (Válido)</option>
+                                        <option value="Otra">Otra ciudad (No cumple criterio)</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-2">
+                                <div>
+                                    <label class="block text-xs font-semibold text-slate-700 mb-1">Grupo de Estudio</label>
+                                    <select id="grupo" required class="w-full text-sm bg-white border border-slate-300 rounded-lg px-3 py-2 font-medium text-slate-800 focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+                                        <option value="G1_RECIEN">G1: Recién Egresado (0 a 2 años)</option>
+                                        <option value="G2_EXPERIENCIA">G2: Mayor Trayectoria (> 5 años)</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-semibold text-slate-700 mb-1">Años desde el Egreso</label>
+                                    <input type="number" id="aniosEgreso" step="0.1" min="0" max="50" required class="w-full text-sm bg-white border border-slate-300 rounded-lg px-3 py-2 text-slate-800 focus:ring-2 focus:ring-indigo-500 focus:outline-none" placeholder="Ej: 0.8 o 6.5">
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-semibold text-slate-700 mb-1">Carrera / Profesión</label>
+                                    <input type="text" id="carrera" class="w-full text-sm bg-white border border-slate-300 rounded-lg px-3 py-2 text-slate-800 focus:ring-2 focus:ring-indigo-500 focus:outline-none" placeholder="Ej: Administración">
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Sección 2: Situación Laboral (P1 a P5) -->
+                        <div class="bg-slate-50/70 p-4 rounded-xl border border-slate-200/80 space-y-4">
+                            <h4 class="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-1.5">
+                                <i class="fas fa-briefcase text-slate-400"></i> 2. Preguntas de Situación Laboral (Encuesta Piloto)
+                            </h4>
+
+                            <!-- P1 -->
+                            <div class="bg-white p-3.5 rounded-lg border border-slate-200">
+                                <label class="block text-xs font-bold text-slate-900 mb-2">
+                                    1. ¿Actualmente cuenta con algún trabajo remunerado?
+                                </label>
+                                <div class="flex items-center gap-6 text-sm">
+                                    <label class="flex items-center gap-2 cursor-pointer font-medium text-emerald-800">
+                                        <input type="radio" name="p1" value="1" class="text-indigo-600 focus:ring-indigo-500 w-4 h-4" required>
+                                        <span>Sí (Trabaja actualmente)</span>
+                                    </label>
+                                    <label class="flex items-center gap-2 cursor-pointer font-medium text-rose-800">
+                                        <input type="radio" name="p1" value="0" class="text-indigo-600 focus:ring-indigo-500 w-4 h-4">
+                                        <span>No (No trabaja)</span>
+                                    </label>
+                                </div>
+                            </div>
+
+                            <!-- P5 (Si P1 = Sí) -->
+                            <div id="seccion-empleado" class="hidden bg-emerald-50/50 p-3.5 rounded-lg border border-emerald-200">
+                                <label class="block text-xs font-bold text-emerald-950 mb-1">
+                                    5. Si actualmente trabaja, ¿su empleo es formal?
+                                </label>
+                                <p class="text-[11px] text-emerald-800 mb-2">
+                                    <i class="fas fa-info-circle"></i> <strong>Criterio formal:</strong> Cuenta con contrato/relación laboral formalizada o documentación que respalde la relación de trabajo.
+                                </p>
+                                <div class="flex items-center gap-6 text-sm">
+                                    <label class="flex items-center gap-2 cursor-pointer font-semibold text-emerald-900">
+                                        <input type="radio" name="p5" value="1" class="text-emerald-600 focus:ring-emerald-500 w-4 h-4">
+                                        <span>Sí, empleo formal (Éxito = 1)</span>
+                                    </label>
+                                    <label class="flex items-center gap-2 cursor-pointer font-semibold text-slate-700">
+                                        <input type="radio" name="p5" value="0" class="text-slate-600 focus:ring-slate-500 w-4 h-4">
+                                        <span>No, es informal (Fracaso = 0)</span>
+                                    </label>
+                                </div>
+                            </div>
+
+                            <!-- P2, P3, P4 (Si P1 = No) -->
+                            <div id="seccion-desempleado" class="hidden bg-amber-50/50 p-3.5 rounded-lg border border-amber-200 space-y-3">
+                                <div>
+                                    <label class="block text-xs font-bold text-amber-950 mb-1.5">
+                                        2. Si respondió NO, ¿se encuentra buscando trabajo actualmente?
+                                    </label>
+                                    <div class="flex items-center gap-6 text-xs sm:text-sm">
+                                        <label class="flex items-center gap-1.5 cursor-pointer text-slate-800">
+                                            <input type="radio" name="p2" value="1" class="text-amber-600 focus:ring-amber-500">
+                                            <span>Sí, buscando activamente</span>
+                                        </label>
+                                        <label class="flex items-center gap-1.5 cursor-pointer text-slate-800">
+                                            <input type="radio" name="p2" value="0" class="text-amber-600 focus:ring-amber-500">
+                                            <span>No, no estoy buscando</span>
+                                        </label>
+                                    </div>
+                                </div>
+
+                                <div class="pt-2 border-t border-amber-200/60">
+                                    <label class="block text-xs font-bold text-amber-950 mb-1.5">
+                                        3. ¿Ha realizado alguna actividad para conseguir empleo en las últimas 4 semanas?
+                                    </label>
+                                    <div class="flex items-center gap-6 text-xs sm:text-sm">
+                                        <label class="flex items-center gap-1.5 cursor-pointer text-slate-800">
+                                            <input type="radio" name="p3" value="1" class="text-amber-600 focus:ring-amber-500">
+                                            <span>Sí (CV, entrevistas, contacto)</span>
+                                        </label>
+                                        <label class="flex items-center gap-1.5 cursor-pointer text-slate-800">
+                                            <input type="radio" name="p3" value="0" class="text-amber-600 focus:ring-amber-500">
+                                            <span>No</span>
+                                        </label>
+                                    </div>
+                                </div>
+
+                                <div class="pt-2 border-t border-amber-200/60">
+                                    <label class="block text-xs font-bold text-amber-950 mb-1.5">
+                                        4. Si actualmente no trabaja, ¿estaría disponible para comenzar a trabajar?
+                                    </label>
+                                    <div class="flex items-center gap-6 text-xs sm:text-sm">
+                                        <label class="flex items-center gap-1.5 cursor-pointer text-slate-800">
+                                            <input type="radio" name="p4" value="1" class="text-amber-600 focus:ring-amber-500">
+                                            <span>Sí, disponible</span>
+                                        </label>
+                                        <label class="flex items-center gap-1.5 cursor-pointer text-slate-800">
+                                            <input type="radio" name="p4" value="0" class="text-amber-600 focus:ring-amber-500">
+                                            <span>No disponible</span>
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Sección 3: Variable Cuantitativa (Tiempo Primer Empleo) -->
+                        <div class="bg-slate-50/70 p-4 rounded-xl border border-slate-200/80 space-y-2">
+                            <h4 class="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-1.5">
+                                <i class="fas fa-stopwatch text-slate-400"></i> 3. Variable para Prueba U de Mann-Whitney y Medias
+                            </h4>
+                            <label class="block text-xs font-semibold text-slate-700">
+                                ¿Cuánto tiempo tardó en conseguir su primer empleo tras egresar? (en meses)
+                            </label>
+                            <div class="flex items-center gap-3">
+                                <input type="number" id="tiempoMeses" min="0" max="120" step="0.5" required class="w-48 text-sm bg-white border border-slate-300 rounded-lg px-3 py-2 text-slate-800 font-bold focus:ring-2 focus:ring-indigo-500 focus:outline-none" placeholder="Meses (ej: 4)">
+                                <span class="text-xs text-slate-500 font-medium">meses transcurridos</span>
+                            </div>
+                        </div>
+
+                        <div class="pt-2">
+                            <button type="submit" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-4 rounded-xl shadow-md hover:shadow-lg transition flex items-center justify-center gap-2">
+                                <i class="fas fa-save"></i> Guardar Encuesta en la Base de Datos
+                            </button>
+                        </div>
+                    </form>
+                </div>
+
+                <!-- Tarjeta Lateral de Criterios y Guía Metodológica -->
+                <div class="space-y-5">
+                    <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-5 space-y-3">
+                        <h4 class="font-bold text-sm text-slate-900 flex items-center gap-2">
+                            <i class="fas fa-book-open text-blue-600"></i> Guía Metodológica del Proyecto
+                        </h4>
+                        <div class="text-xs text-slate-600 space-y-2 leading-relaxed">
+                            <p><strong>Hipótesis Alternativa (H₁):</strong> p₁ &lt; p₂</p>
+                            <p class="text-slate-500">La proporción de contratación formal de recién egresados es menor que la de profesionales con más de 5 años.</p>
+                            <div class="bg-blue-50 p-2.5 rounded-lg border border-blue-200 text-blue-900">
+                                <strong>Clasificación de Situación Laboral:</strong>
+                                <ul class="list-disc list-inside mt-1 space-y-1 text-[11px]">
+                                    <li><strong>Empleado:</strong> Trabajo remunerado (formal o informal).</li>
+                                    <li><strong>Desempleado activo:</strong> No tiene trabajo, buscó en las últimas 4 sem. y está disponible.</li>
+                                    <li><strong>Inactivo:</strong> No trabaja y no busca empleo (no entra como desempleado activo).</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-5 space-y-3">
+                        <h4 class="font-bold text-sm text-slate-900 flex items-center gap-2">
+                            <i class="fas fa-bullseye text-emerald-600"></i> Parámetros Estadísticos
+                        </h4>
+                        <ul class="text-xs space-y-1.5 text-slate-600">
+                            <li class="flex justify-between"><span>Nivel de confianza:</span> <strong class="text-slate-800">95%</strong></li>
+                            <li class="flex justify-between"><span>Significancia (α):</span> <strong class="text-slate-800">0.05</strong></li>
+                            <li class="flex justify-between"><span>Prueba:</span> <strong class="text-slate-800">Unilateral izquierda</strong></li>
+                            <li class="flex justify-between"><span>Z crítico:</span> <strong class="text-slate-800">-1.645</strong></li>
+                            <li class="flex justify-between"><span>Potencia:</span> <strong class="text-slate-800">80% (Zβ = 0.842)</strong></li>
+                            <li class="flex justify-between"><span>Muestra por grupo:</span> <strong class="text-slate-800">37 sujetos</strong></li>
+                        </ul>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
+        <!-- ========================================== -->
+        <!-- PESTAÑA 2: BASE DE DATOS & REGISTROS       -->
+        <!-- ========================================== -->
+        <div id="tab-tabla" class="tab-content hidden space-y-4">
+            <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-5">
+                <div class="flex flex-col sm:flex-row items-center justify-between gap-4 mb-4">
+                    <div class="flex items-center gap-2">
+                        <h3 class="font-bold text-slate-900 text-base">Registros Almacenados</h3>
+                        <span id="total-registros-badge" class="px-2.5 py-0.5 rounded-full text-xs font-bold bg-indigo-100 text-indigo-800">0 registros</span>
+                    </div>
+
+                    <div class="flex flex-wrap items-center gap-2 w-full sm:w-auto">
+                        <select id="filtro-grupo" onchange="renderizarTabla()" class="text-xs bg-slate-50 border border-slate-300 rounded-lg px-2.5 py-2 font-medium text-slate-700">
+                            <option value="TODOS">Todos los grupos</option>
+                            <option value="G1_RECIEN">G1: Recién egresados (0-2a)</option>
+                            <option value="G2_EXPERIENCIA">G2: Con más de 5 años</option>
+                        </select>
+                        <input type="text" id="busqueda-tabla" oninput="renderizarTabla()" placeholder="Buscar código, carrera, encuestador..." class="text-xs bg-slate-50 border border-slate-300 rounded-lg px-3 py-2 text-slate-700 w-full sm:w-56 focus:outline-none focus:ring-1 focus:ring-indigo-500">
+                        <button onclick="vaciarBaseDatos()" class="text-xs text-rose-600 hover:text-rose-800 font-semibold px-2 py-2 hover:bg-rose-50 rounded-lg transition" title="Vaciar toda la base de datos">
+                            <i class="fas fa-trash"></i> Vaciar
+                        </button>
+                    </div>
+                </div>
+
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left border-collapse">
+                        <thead>
+                            <tr class="border-b border-slate-200 text-slate-500 text-xs uppercase font-semibold bg-slate-50/70">
+                                <th class="py-3 px-3">Código</th>
+                                <th class="py-3 px-3">Grupo</th>
+                                <th class="py-3 px-3">Carrera</th>
+                                <th class="py-3 px-3">Clasificación</th>
+                                <th class="py-3 px-3">Empleo Formal (P5)</th>
+                                <th class="py-3 px-3">1er Empleo</th>
+                                <th class="py-3 px-3">Encuestador</th>
+                                <th class="py-3 px-3 text-right">Acción</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tabla-encuestas-body" class="divide-y divide-slate-100">
+                            <!-- Inyectado vía JavaScript -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- ========================================== -->
+        <!-- PESTAÑA 3: ANÁLISIS ESTADÍSTICO EN VIVO    -->
+        <!-- ========================================== -->
+        <div id="tab-estadisticas" class="tab-content hidden space-y-6">
+            
+            <!-- Tarjetas de Comparación de Grupos -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <!-- Tarjeta G1 -->
+                <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-5">
+                    <div class="flex items-center justify-between border-b pb-3 mb-3">
+                        <div class="flex items-center gap-2">
+                            <span class="w-3 h-3 rounded-full bg-sky-500"></span>
+                            <h3 class="font-bold text-slate-900 text-sm">Grupo 1: Recién Egresados (0 a 2 años)</h3>
+                        </div>
+                        <span class="text-xs bg-sky-50 text-sky-800 font-bold px-2 py-0.5 rounded">p₁</span>
+                    </div>
+
+                    <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 text-center">
+                        <div class="bg-slate-50 p-2.5 rounded-lg border">
+                            <span class="text-[11px] text-slate-500 block">Encuestados (n₁)</span>
+                            <span id="stat-n1" class="text-lg font-bold text-slate-800">0</span>
+                        </div>
+                        <div class="bg-slate-50 p-2.5 rounded-lg border">
+                            <span class="text-[11px] text-slate-500 block">Empleo Formal (x₁)</span>
+                            <span id="stat-x1" class="text-lg font-bold text-emerald-600">0</span>
+                        </div>
+                        <div class="bg-slate-50 p-2.5 rounded-lg border">
+                            <span class="text-[11px] text-slate-500 block">Proporción (p₁)</span>
+                            <span id="stat-p1" class="text-lg font-bold text-sky-700">0%</span>
+                        </div>
+                        <div class="bg-slate-50 p-2.5 rounded-lg border">
+                            <span class="text-[11px] text-slate-500 block">Media Tiempo</span>
+                            <span id="stat-media1" class="text-lg font-bold text-slate-800">0 meses</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Tarjeta G2 -->
+                <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-5">
+                    <div class="flex items-center justify-between border-b pb-3 mb-3">
+                        <div class="flex items-center gap-2">
+                            <span class="w-3 h-3 rounded-full bg-indigo-600"></span>
+                            <h3 class="font-bold text-slate-900 text-sm">Grupo 2: Mayor Trayectoria (> 5 años)</h3>
+                        </div>
+                        <span class="text-xs bg-indigo-50 text-indigo-800 font-bold px-2 py-0.5 rounded">p₂</span>
+                    </div>
+
+                    <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 text-center">
+                        <div class="bg-slate-50 p-2.5 rounded-lg border">
+                            <span class="text-[11px] text-slate-500 block">Encuestados (n₂)</span>
+                            <span id="stat-n2" class="text-lg font-bold text-slate-800">0</span>
+                        </div>
+                        <div class="bg-slate-50 p-2.5 rounded-lg border">
+                            <span class="text-[11px] text-slate-500 block">Empleo Formal (x₂)</span>
+                            <span id="stat-x2" class="text-lg font-bold text-emerald-600">0</span>
+                        </div>
+                        <div class="bg-slate-50 p-2.5 rounded-lg border">
+                            <span class="text-[11px] text-slate-500 block">Proporción (p₂)</span>
+                            <span id="stat-p2" class="text-lg font-bold text-indigo-700">0%</span>
+                        </div>
+                        <div class="bg-slate-50 p-2.5 rounded-lg border">
+                            <span class="text-[11px] text-slate-500 block">Media Tiempo</span>
+                            <span id="stat-media2" class="text-lg font-bold text-slate-800">0 meses</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Prueba Z para Dos Proporciones -->
+            <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
+                <div class="flex items-center justify-between border-b pb-3 mb-4">
+                    <div>
+                        <h3 class="font-bold text-slate-900 text-base flex items-center gap-2">
+                            <i class="fas fa-calculator text-indigo-600"></i> Prueba Z para Dos Proporciones Independientes
+                        </h3>
+                        <p class="text-xs text-slate-500">Contraste de hipótesis: H₀: p₁ = p₂ vs H₁: p₁ &lt; p₂ (Nivel de significancia α = 0.05, Z crítico = -1.645)</p>
+                    </div>
+                    <span class="text-xs bg-slate-100 text-slate-700 font-mono px-3 py-1 rounded border">Z = (p₁ - p₂) / EE</span>
+                </div>
+
+                <div id="resultados-prueba-z">
+                    <!-- Dinámico -->
+                </div>
+            </div>
+
+        </div>
+
+        <!-- ========================================== -->
+        <!-- PESTAÑA 4: SCRIPT R & RESPALDOS            -->
+        <!-- ========================================== -->
+        <div id="tab-exportar" class="tab-content hidden space-y-6">
+            <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4">
+                    <div>
+                        <h3 class="font-bold text-slate-900 text-base flex items-center gap-2">
+                            <i class="fab fa-r-project text-blue-600 text-lg"></i> Script en R Sincronizado (Anexo 1)
+                        </h3>
+                        <p class="text-xs text-slate-500">Este script se actualiza automáticamente con los datos reales que vas recolectando para pegarlo directamente en RStudio.</p>
+                    </div>
+                    <button onclick="copiarCodigoR()" class="inline-flex items-center gap-1.5 px-4 py-2 text-xs font-bold rounded-lg bg-indigo-600 text-white hover:bg-indigo-700 transition shadow">
+                        <i class="fas fa-copy"></i> Copiar Código R
+                    </button>
+                </div>
+
+                <textarea id="codigo-r-generado" readonly class="w-full h-80 bg-slate-900 text-emerald-400 font-mono text-xs p-4 rounded-xl border border-slate-800 focus:outline-none select-all leading-relaxed"></textarea>
+            </div>
+
+            <!-- Panel de Sincronización entre Compañeros -->
+            <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
+                <h3 class="font-bold text-slate-900 text-base mb-1 flex items-center gap-2">
+                    <i class="fas fa-users-cog text-slate-700"></i> Trabajo Colaborativo del Equipo
+                </h3>
+                <p class="text-xs text-slate-500 mb-4">Si cada integrante (Ignacio, Matias, Daniel, Mateo, Diego) recolecta encuestas por separado en su teléfono o computadora, pueden unificar los datos fácilmente aquí.</p>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div class="border border-slate-200 p-4 rounded-xl flex items-center justify-between bg-slate-50/50">
+                        <div>
+                            <h4 class="font-bold text-xs text-slate-800">1. Descargar Respaldo JSON</h4>
+                            <p class="text-[11px] text-slate-500">Exporta las encuestas de tu equipo para compartirlas.</p>
+                        </div>
+                        <button onclick="exportarJSON()" class="px-3 py-1.5 text-xs font-semibold rounded-lg bg-slate-800 text-white hover:bg-slate-900">
+                            <i class="fas fa-download"></i> Descargar
+                        </button>
+                    </div>
+
+                    <div class="border border-slate-200 p-4 rounded-xl flex items-center justify-between bg-slate-50/50">
+                        <div>
+                            <h4 class="font-bold text-xs text-slate-800">2. Unificar / Importar JSON</h4>
+                            <p class="text-[11px] text-slate-500">Carga el archivo enviado por tus compañeros.</p>
+                        </div>
+                        <label class="cursor-pointer px-3 py-1.5 text-xs font-semibold rounded-lg bg-indigo-600 text-white hover:bg-indigo-700">
+                            <i class="fas fa-upload"></i> Subir Archivo
+                            <input type="file" accept=".json" onchange="importarJSON(event)" class="hidden">
+                        </label>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- FOOTER -->
+    <footer class="bg-white border-t border-slate-200 py-4 text-center text-xs text-slate-500">
+        Universidad Católica Boliviana “San Pablo” — Regional Cochabamba · Departamento de Administración, Economía y Finanzas · 2026
+    </footer>
+
+    <!-- Script de la aplicación -->
+    <script src="app.js"></script>
+</body>
+</html>
