@@ -551,7 +551,741 @@
         Universidad Católica Boliviana “San Pablo” — Regional Cochabamba · Departamento de Administración, Economía y Finanzas · 2026
     </footer>
 
-    <!-- Script de la aplicación -->
-    <script src="app.js"></script>
+    <!-- Script de la aplicación (Integrado para compatibilidad total con GitHub y Local) -->
+    <script>
+// =======================================================================
+// UCB Cochabamba - Sistema de Recolección y Análisis Estadístico
+// Proyecto: Oportunidades de Empleo (Recién Egresados vs >5 años)
+// =======================================================================
+
+const STORAGE_KEY = 'ucb_encuestas_empleo_db';
+const OBJETIVO_MUESTRA_G1 = 37;
+const OBJETIVO_MUESTRA_G2 = 37;
+
+// Estado en memoria
+let encuestas = [];
+
+// Inicialización
+document.addEventListener('DOMContentLoaded', () => {
+    cargarDatos();
+    setupEventListeners();
+    actualizarVista();
+});
+
+// Cargar datos desde localStorage o cargar vacíos
+function cargarDatos() {
+    const data = localStorage.getItem(STORAGE_KEY);
+    if (data) {
+        try {
+            encuestas = JSON.parse(data);
+        } catch (e) {
+            console.error('Error parseando localStorage:', e);
+            encuestas = [];
+        }
+    } else {
+        encuestas = [];
+    }
+}
+
+// Guardar en localStorage
+function guardarEnStorage() {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(encuestas));
+    actualizarVista();
+}
+
+// Configuración de listeners
+function setupEventListeners() {
+    // Control de condicionales de P1
+    const p1Radios = document.querySelectorAll('input[name="p1"]');
+    p1Radios.forEach(r => {
+        r.addEventListener('change', (e) => {
+            const trabaja = e.target.value === '1';
+            const divDesempleado = document.getElementById('seccion-desempleado');
+            const divEmpleado = document.getElementById('seccion-empleado');
+            
+            if (trabaja) {
+                divDesempleado.classList.add('hidden');
+                divEmpleado.classList.remove('hidden');
+                limpiarRadios(['p2', 'p3', 'p4']);
+            } else {
+                divDesempleado.classList.remove('hidden');
+                divEmpleado.classList.add('hidden');
+                limpiarRadios(['p5']);
+            }
+            calcularClasificacionPrevia();
+        });
+    });
+
+    // Cambios en P2, P3, P4 para calcular clasificación previa
+    ['p2', 'p3', 'p4'].forEach(name => {
+        document.querySelectorAll(`input[name="${name}"]`).forEach(r => {
+            r.addEventListener('change', calcularClasificacionPrevia);
+        });
+    });
+
+    // Cambio en grupo para actualizar prefijo de código
+    const selectGrupo = document.getElementById('grupo');
+    if (selectGrupo) {
+        selectGrupo.addEventListener('change', () => {
+            sugerirCodigo();
+        });
+    }
+
+    // Envío del formulario
+    const form = document.getElementById('form-encuesta');
+    if (form) {
+        form.addEventListener('submit', manejarEnvioFormulario);
+    }
+}
+
+function limpiarRadios(nombres) {
+    nombres.forEach(n => {
+        document.querySelectorAll(`input[name="${n}"]`).forEach(el => el.checked = false);
+    });
+}
+
+function calcularClasificacionPrevia() {
+    const p1 = document.querySelector('input[name="p1"]:checked')?.value;
+    const badge = document.getElementById('badge-clasificacion');
+    if (!badge) return;
+
+    if (!p1) {
+        badge.textContent = 'Pendiente de respuestas';
+        badge.className = 'px-3 py-1 text-xs font-semibold rounded-full bg-slate-100 text-slate-600 border';
+        return;
+    }
+
+    if (p1 === '1') {
+        badge.textContent = 'EMPLEADO (Con trabajo remunerado)';
+        badge.className = 'px-3 py-1 text-xs font-semibold rounded-full bg-emerald-100 text-emerald-800 border border-emerald-300';
+    } else {
+        const p2 = document.querySelector('input[name="p2"]:checked')?.value;
+        const p3 = document.querySelector('input[name="p3"]:checked')?.value;
+        const p4 = document.querySelector('input[name="p4"]:checked')?.value;
+
+        if (p2 === '1' && p3 === '1' && p4 === '1') {
+            badge.textContent = 'DESEMPLEADO ACTIVO (Criterio de estudio cumplido)';
+            badge.className = 'px-3 py-1 text-xs font-semibold rounded-full bg-amber-100 text-amber-800 border border-amber-300';
+        } else if (p2 !== undefined || p3 !== undefined || p4 !== undefined) {
+            badge.textContent = 'INACTIVO LABORAL (No busca activamente o no disponible)';
+            badge.className = 'px-3 py-1 text-xs font-semibold rounded-full bg-slate-200 text-slate-700 border border-slate-300';
+        } else {
+            badge.textContent = 'Completar preguntas 2, 3 y 4';
+            badge.className = 'px-3 py-1 text-xs font-semibold rounded-full bg-slate-100 text-slate-600 border';
+        }
+    }
+}
+
+function sugerirCodigo() {
+    const grupo = document.getElementById('grupo').value;
+    const codigoInput = document.getElementById('codigo');
+    if (!grupo || !codigoInput) return;
+
+    const conteo = encuestas.filter(e => e.grupo === grupo).length + 1;
+    const prefijo = grupo === 'G1_RECIEN' ? 'RE' : 'EXP';
+    codigoInput.value = `${prefijo}-${String(conteo).padStart(2, '0')}`;
+}
+
+// Manejar el submit de la encuesta
+function manejarEnvioFormulario(e) {
+    e.preventDefault();
+
+    const encuestador = document.getElementById('encuestador').value;
+    const grupo = document.getElementById('grupo').value;
+    const aniosEgreso = parseFloat(document.getElementById('aniosEgreso').value);
+    const carrera = document.getElementById('carrera').value.trim();
+    const residencia = document.getElementById('residencia').value;
+    const codigo = document.getElementById('codigo').value.trim();
+    const tiempoMeses = parseFloat(document.getElementById('tiempoMeses').value);
+
+    // Validaciones
+    if (residencia !== 'Cochabamba') {
+        alert('Criterio de Inclusión: La investigación está delimitada exclusivamente a profesionales residentes en Cochabamba.');
+        return;
+    }
+
+    if (grupo === 'G1_RECIEN' && (aniosEgreso < 0 || aniosEgreso > 2)) {
+        if (!confirm(`Advertencia: El Grupo 1 corresponde a recién egresados (0 a 2 años). Has ingresado ${aniosEgreso} años. ¿Deseas continuar de todas formas?`)) {
+            return;
+        }
+    }
+
+    if (grupo === 'G2_EXPERIENCIA' && aniosEgreso < 5) {
+        if (!confirm(`Advertencia: El Grupo 2 requiere más de 5 años desde el egreso. Has ingresado ${aniosEgreso} años. ¿Deseas continuar de todas formas?`)) {
+            return;
+        }
+    }
+
+    if (isNaN(tiempoMeses) || tiempoMeses < 0) {
+        alert('Por favor introduce un tiempo válido en meses para la consecución del primer empleo.');
+        return;
+    }
+
+    const p1El = document.querySelector('input[name="p1"]:checked');
+    if (!p1El) {
+        alert('Por favor responde la Pregunta 1 (¿Cuenta con trabajo remunerado?).');
+        return;
+    }
+    const p1 = parseInt(p1El.value);
+
+    let p2 = null, p3 = null, p4 = null, p5 = null;
+    let clasificacion = '';
+
+    if (p1 === 1) {
+        clasificacion = 'EMPLEADO';
+        const p5El = document.querySelector('input[name="p5"]:checked');
+        if (!p5El) {
+            alert('Por favor responde la Pregunta 5 (¿Su empleo es formal?).');
+            return;
+        }
+        p5 = parseInt(p5El.value);
+    } else {
+        const p2El = document.querySelector('input[name="p2"]:checked');
+        const p3El = document.querySelector('input[name="p3"]:checked');
+        const p4El = document.querySelector('input[name="p4"]:checked');
+
+        if (!p2El || !p3El || !p4El) {
+            alert('Por favor completa las preguntas 2, 3 y 4 sobre la situación de búsqueda laboral.');
+            return;
+        }
+
+        p2 = parseInt(p2El.value);
+        p3 = parseInt(p3El.value);
+        p4 = parseInt(p4El.value);
+
+        if (p2 === 1 && p3 === 1 && p4 === 1) {
+            clasificacion = 'DESEMPLEADO_ACTIVO';
+        } else {
+            clasificacion = 'INACTIVO_LABORAL';
+        }
+        p5 = 0;
+    }
+
+    const nuevaEncuesta = {
+        id: Date.now(),
+        codigo: codigo || `SUJ-${encuestas.length + 1}`,
+        encuestador,
+        carrera: carrera || 'No especificada',
+        residencia,
+        grupo,
+        aniosEgreso,
+        p1,
+        p2,
+        p3,
+        p4,
+        p5,
+        clasificacion,
+        tiempoMeses,
+        fecha: new Date().toISOString().split('T')[0]
+    };
+
+    encuestas.push(nuevaEncuesta);
+    guardarEnStorage();
+
+    // Reset formulario
+    document.getElementById('form-encuesta').reset();
+    document.getElementById('seccion-desempleado').classList.add('hidden');
+    document.getElementById('seccion-empleado').classList.add('hidden');
+    calcularClasificacionPrevia();
+    sugerirCodigo();
+
+    mostrarNotificacion('¡Encuesta guardada con éxito!', 'success');
+}
+
+// Eliminar encuesta
+function eliminarEncuesta(id) {
+    if (confirm('¿Estás seguro de eliminar este registro?')) {
+        encuestas = encuestas.filter(e => e.id !== id);
+        guardarEnStorage();
+        mostrarNotificacion('Registro eliminado.', 'info');
+    }
+}
+
+// Datos simulados de referencia del trabajo académico (Anexo / Sección 6.2 y 8)
+const DATOS_SIMULADOS_DEFAULT = [
+  {"id":1,"codigo":"RE-01","encuestador":"Ignacio Miranda Lara","carrera":"Administración de Empresas","residencia":"Cochabamba","grupo":"G1_RECIEN","aniosEgreso":0.8,"p1":1,"p2":null,"p3":null,"p4":null,"p5":1,"clasificacion":"EMPLEADO","tiempoMeses":2,"fecha":"2026-11-20"},
+  {"id":2,"codigo":"RE-02","encuestador":"Matias Rojas Delgadillo","carrera":"Ingeniería Comercial","residencia":"Cochabamba","grupo":"G1_RECIEN","aniosEgreso":1.2,"p1":1,"p2":null,"p3":null,"p4":null,"p5":0,"clasificacion":"EMPLEADO","tiempoMeses":3,"fecha":"2026-11-20"},
+  {"id":3,"codigo":"RE-03","encuestador":"Daniel Rojas","carrera":"Finanzas","residencia":"Cochabamba","grupo":"G1_RECIEN","aniosEgreso":0.5,"p1":1,"p2":null,"p3":null,"p4":null,"p5":1,"clasificacion":"EMPLEADO","tiempoMeses":4,"fecha":"2026-11-20"},
+  {"id":4,"codigo":"RE-04","encuestador":"Mateo Ulloa","carrera":"Economía","residencia":"Cochabamba","grupo":"G1_RECIEN","aniosEgreso":1.5,"p1":0,"p2":1,"p3":1,"p4":1,"p5":null,"clasificacion":"DESEMPLEADO_ACTIVO","tiempoMeses":5,"fecha":"2026-11-20"},
+  {"id":5,"codigo":"RE-05","encuestador":"Diego Arias","carrera":"Contaduría Pública","residencia":"Cochabamba","grupo":"G1_RECIEN","aniosEgreso":1.0,"p1":1,"p2":null,"p3":null,"p4":null,"p5":0,"clasificacion":"EMPLEADO","tiempoMeses":6,"fecha":"2026-11-20"},
+  {"id":6,"codigo":"RE-06","encuestador":"Ignacio Miranda Lara","carrera":"Marketing","residencia":"Cochabamba","grupo":"G1_RECIEN","aniosEgreso":0.3,"p1":1,"p2":null,"p3":null,"p4":null,"p5":1,"clasificacion":"EMPLEADO","tiempoMeses":2,"fecha":"2026-11-20"},
+  {"id":7,"codigo":"RE-07","encuestador":"Matias Rojas Delgadillo","carrera":"Ingeniería Financiera","residencia":"Cochabamba","grupo":"G1_RECIEN","aniosEgreso":2.0,"p1":0,"p2":1,"p3":1,"p4":1,"p5":null,"clasificacion":"DESEMPLEADO_ACTIVO","tiempoMeses":8,"fecha":"2026-11-20"},
+  {"id":8,"codigo":"RE-08","encuestador":"Daniel Rojas","carrera":"Administración","residencia":"Cochabamba","grupo":"G1_RECIEN","aniosEgreso":1.1,"p1":1,"p2":null,"p3":null,"p4":null,"p5":1,"clasificacion":"EMPLEADO","tiempoMeses":4,"fecha":"2026-11-20"},
+  {"id":9,"codigo":"RE-09","encuestador":"Mateo Ulloa","carrera":"Economía","residencia":"Cochabamba","grupo":"G1_RECIEN","aniosEgreso":0.9,"p1":1,"p2":null,"p3":null,"p4":null,"p5":0,"clasificacion":"EMPLEADO","tiempoMeses":3,"fecha":"2026-11-20"},
+  {"id":10,"codigo":"RE-10","encuestador":"Diego Arias","carrera":"Ingeniería de Sistemas","residencia":"Cochabamba","grupo":"G1_RECIEN","aniosEgreso":1.7,"p1":1,"p2":null,"p3":null,"p4":null,"p5":1,"clasificacion":"EMPLEADO","tiempoMeses":5,"fecha":"2026-11-20"},
+  {"id":11,"codigo":"RE-11","encuestador":"Ignacio Miranda Lara","carrera":"Comercio Internacional","residencia":"Cochabamba","grupo":"G1_RECIEN","aniosEgreso":1.4,"p1":0,"p2":1,"p3":1,"p4":1,"p5":null,"clasificacion":"DESEMPLEADO_ACTIVO","tiempoMeses":6,"fecha":"2026-11-21"},
+  {"id":12,"codigo":"RE-12","encuestador":"Matias Rojas Delgadillo","carrera":"Administración","residencia":"Cochabamba","grupo":"G1_RECIEN","aniosEgreso":0.6,"p1":1,"p2":null,"p3":null,"p4":null,"p5":1,"clasificacion":"EMPLEADO","tiempoMeses":7,"fecha":"2026-11-21"},
+  {"id":13,"codigo":"RE-13","encuestador":"Daniel Rojas","carrera":"Finanzas","residencia":"Cochabamba","grupo":"G1_RECIEN","aniosEgreso":1.0,"p1":1,"p2":null,"p3":null,"p4":null,"p5":0,"clasificacion":"EMPLEADO","tiempoMeses":3,"fecha":"2026-11-21"},
+  {"id":14,"codigo":"RE-14","encuestador":"Mateo Ulloa","carrera":"Economía","residencia":"Cochabamba","grupo":"G1_RECIEN","aniosEgreso":1.8,"p1":1,"p2":null,"p3":null,"p4":null,"p5":1,"clasificacion":"EMPLEADO","tiempoMeses":4,"fecha":"2026-11-21"},
+  {"id":15,"codigo":"RE-15","encuestador":"Diego Arias","carrera":"Contaduría","residencia":"Cochabamba","grupo":"G1_RECIEN","aniosEgreso":0.4,"p1":0,"p2":1,"p3":1,"p4":1,"p5":null,"clasificacion":"DESEMPLEADO_ACTIVO","tiempoMeses":5,"fecha":"2026-11-21"},
+  {"id":16,"codigo":"RE-16","encuestador":"Ignacio Miranda Lara","carrera":"Administración","residencia":"Cochabamba","grupo":"G1_RECIEN","aniosEgreso":1.9,"p1":0,"p2":1,"p3":1,"p4":1,"p5":null,"clasificacion":"DESEMPLEADO_ACTIVO","tiempoMeses":9,"fecha":"2026-11-21"},
+  {"id":17,"codigo":"RE-17","encuestador":"Matias Rojas Delgadillo","carrera":"Ingeniería Industrial","residencia":"Cochabamba","grupo":"G1_RECIEN","aniosEgreso":0.7,"p1":1,"p2":null,"p3":null,"p4":null,"p5":1,"clasificacion":"EMPLEADO","tiempoMeses":2,"fecha":"2026-11-21"},
+  {"id":18,"codigo":"RE-18","encuestador":"Daniel Rojas","carrera":"Marketing","residencia":"Cochabamba","grupo":"G1_RECIEN","aniosEgreso":1.5,"p1":1,"p2":null,"p3":null,"p4":null,"p5":0,"clasificacion":"EMPLEADO","tiempoMeses":6,"fecha":"2026-11-21"},
+  {"id":19,"codigo":"RE-19","encuestador":"Mateo Ulloa","carrera":"Finanzas","residencia":"Cochabamba","grupo":"G1_RECIEN","aniosEgreso":1.2,"p1":1,"p2":null,"p3":null,"p4":null,"p5":1,"clasificacion":"EMPLEADO","tiempoMeses":4,"fecha":"2026-11-21"},
+  {"id":20,"codigo":"RE-20","encuestador":"Diego Arias","carrera":"Administración","residencia":"Cochabamba","grupo":"G1_RECIEN","aniosEgreso":1.8,"p1":0,"p2":1,"p3":1,"p4":1,"p5":null,"clasificacion":"DESEMPLEADO_ACTIVO","tiempoMeses":8,"fecha":"2026-11-21"},
+  {"id":21,"codigo":"RE-21","encuestador":"Ignacio Miranda Lara","carrera":"Economía","residencia":"Cochabamba","grupo":"G1_RECIEN","aniosEgreso":0.5,"p1":1,"p2":null,"p3":null,"p4":null,"p5":1,"clasificacion":"EMPLEADO","tiempoMeses":3,"fecha":"2026-11-22"},
+  {"id":22,"codigo":"RE-22","encuestador":"Matias Rojas Delgadillo","carrera":"Ingeniería Comercial","residencia":"Cochabamba","grupo":"G1_RECIEN","aniosEgreso":1.0,"p1":1,"p2":null,"p3":null,"p4":null,"p5":0,"clasificacion":"EMPLEADO","tiempoMeses":5,"fecha":"2026-11-22"},
+  {"id":23,"codigo":"RE-23","encuestador":"Daniel Rojas","carrera":"Comercio Exterior","residencia":"Cochabamba","grupo":"G1_RECIEN","aniosEgreso":1.6,"p1":0,"p2":1,"p3":1,"p4":1,"p5":null,"clasificacion":"DESEMPLEADO_ACTIVO","tiempoMeses":7,"fecha":"2026-11-22"},
+  {"id":24,"codigo":"RE-24","encuestador":"Mateo Ulloa","carrera":"Contaduría","residencia":"Cochabamba","grupo":"G1_RECIEN","aniosEgreso":1.3,"p1":1,"p2":null,"p3":null,"p4":null,"p5":1,"clasificacion":"EMPLEADO","tiempoMeses":4,"fecha":"2026-11-22"},
+  {"id":25,"codigo":"RE-25","encuestador":"Diego Arias","carrera":"Finanzas","residencia":"Cochabamba","grupo":"G1_RECIEN","aniosEgreso":1.7,"p1":1,"p2":null,"p3":null,"p4":null,"p5":0,"clasificacion":"EMPLEADO","tiempoMeses":6,"fecha":"2026-11-22"},
+  {"id":26,"codigo":"RE-26","encuestador":"Ignacio Miranda Lara","carrera":"Administración","residencia":"Cochabamba","grupo":"G1_RECIEN","aniosEgreso":0.4,"p1":1,"p2":null,"p3":null,"p4":null,"p5":1,"clasificacion":"EMPLEADO","tiempoMeses":2,"fecha":"2026-11-22"},
+  {"id":27,"codigo":"RE-27","encuestador":"Matias Rojas Delgadillo","carrera":"Economía","residencia":"Cochabamba","grupo":"G1_RECIEN","aniosEgreso":2.0,"p1":0,"p2":1,"p3":1,"p4":1,"p5":null,"clasificacion":"DESEMPLEADO_ACTIVO","tiempoMeses":10,"fecha":"2026-11-22"},
+  {"id":28,"codigo":"RE-28","encuestador":"Daniel Rojas","carrera":"Marketing","residencia":"Cochabamba","grupo":"G1_RECIEN","aniosEgreso":1.1,"p1":1,"p2":null,"p3":null,"p4":null,"p5":0,"clasificacion":"EMPLEADO","tiempoMeses":5,"fecha":"2026-11-22"},
+  {"id":29,"codigo":"RE-29","encuestador":"Mateo Ulloa","carrera":"Ingeniería Comercial","residencia":"Cochabamba","grupo":"G1_RECIEN","aniosEgreso":0.8,"p1":1,"p2":null,"p3":null,"p4":null,"p5":1,"clasificacion":"EMPLEADO","tiempoMeses":3,"fecha":"2026-11-22"},
+  {"id":30,"codigo":"RE-30","encuestador":"Diego Arias","carrera":"Administración","residencia":"Cochabamba","grupo":"G1_RECIEN","aniosEgreso":1.5,"p1":1,"p2":null,"p3":null,"p4":null,"p5":0,"clasificacion":"EMPLEADO","tiempoMeses":4,"fecha":"2026-11-22"},
+
+  {"id":31,"codigo":"EXP-01","encuestador":"Ignacio Miranda Lara","carrera":"Administración","residencia":"Cochabamba","grupo":"G2_EXPERIENCIA","aniosEgreso":7.5,"p1":1,"p2":null,"p3":null,"p4":null,"p5":1,"clasificacion":"EMPLEADO","tiempoMeses":1,"fecha":"2026-11-20"},
+  {"id":32,"codigo":"EXP-02","encuestador":"Matias Rojas Delgadillo","carrera":"Economía","residencia":"Cochabamba","grupo":"G2_EXPERIENCIA","aniosEgreso":6.0,"p1":1,"p2":null,"p3":null,"p4":null,"p5":1,"clasificacion":"EMPLEADO","tiempoMeses":2,"fecha":"2026-11-20"},
+  {"id":33,"codigo":"EXP-03","encuestador":"Daniel Rojas","carrera":"Finanzas","residencia":"Cochabamba","grupo":"G2_EXPERIENCIA","aniosEgreso":8.0,"p1":1,"p2":null,"p3":null,"p4":null,"p5":1,"clasificacion":"EMPLEADO","tiempoMeses":2,"fecha":"2026-11-20"},
+  {"id":34,"codigo":"EXP-04","encuestador":"Mateo Ulloa","carrera":"Contaduría","residencia":"Cochabamba","grupo":"G2_EXPERIENCIA","aniosEgreso":5.5,"p1":1,"p2":null,"p3":null,"p4":null,"p5":0,"clasificacion":"EMPLEADO","tiempoMeses":3,"fecha":"2026-11-20"},
+  {"id":35,"codigo":"EXP-05","encuestador":"Diego Arias","carrera":"Ingeniería Comercial","residencia":"Cochabamba","grupo":"G2_EXPERIENCIA","aniosEgreso":9.0,"p1":1,"p2":null,"p3":null,"p4":null,"p5":1,"clasificacion":"EMPLEADO","tiempoMeses":4,"fecha":"2026-11-20"},
+  {"id":36,"codigo":"EXP-06","encuestador":"Ignacio Miranda Lara","carrera":"Administración","residencia":"Cochabamba","grupo":"G2_EXPERIENCIA","aniosEgreso":7.0,"p1":1,"p2":null,"p3":null,"p4":null,"p5":1,"clasificacion":"EMPLEADO","tiempoMeses":2,"fecha":"2026-11-20"},
+  {"id":37,"codigo":"EXP-07","encuestador":"Matias Rojas Delgadillo","carrera":"Economía","residencia":"Cochabamba","grupo":"G2_EXPERIENCIA","aniosEgreso":6.5,"p1":1,"p2":null,"p3":null,"p4":null,"p5":0,"clasificacion":"EMPLEADO","tiempoMeses":5,"fecha":"2026-11-20"},
+  {"id":38,"codigo":"EXP-08","encuestador":"Daniel Rojas","carrera":"Marketing","residencia":"Cochabamba","grupo":"G2_EXPERIENCIA","aniosEgreso":8.2,"p1":1,"p2":null,"p3":null,"p4":null,"p5":1,"clasificacion":"EMPLEADO","tiempoMeses":3,"fecha":"2026-11-20"},
+  {"id":39,"codigo":"EXP-09","encuestador":"Mateo Ulloa","carrera":"Ingeniería Financiera","residencia":"Cochabamba","grupo":"G2_EXPERIENCIA","aniosEgreso":10.0,"p1":1,"p2":null,"p3":null,"p4":null,"p5":1,"clasificacion":"EMPLEADO","tiempoMeses":1,"fecha":"2026-11-20"},
+  {"id":40,"codigo":"EXP-10","encuestador":"Diego Arias","carrera":"Administración","residencia":"Cochabamba","grupo":"G2_EXPERIENCIA","aniosEgreso":6.8,"p1":1,"p2":null,"p3":null,"p4":null,"p5":1,"clasificacion":"EMPLEADO","tiempoMeses":4,"fecha":"2026-11-20"},
+  {"id":41,"codigo":"EXP-11","encuestador":"Ignacio Miranda Lara","carrera":"Finanzas","residencia":"Cochabamba","grupo":"G2_EXPERIENCIA","aniosEgreso":7.3,"p1":1,"p2":null,"p3":null,"p4":null,"p5":0,"clasificacion":"EMPLEADO","tiempoMeses":3,"fecha":"2026-11-21"},
+  {"id":42,"codigo":"EXP-12","encuestador":"Matias Rojas Delgadillo","carrera":"Contaduría","residencia":"Cochabamba","grupo":"G2_EXPERIENCIA","aniosEgreso":6.1,"p1":1,"p2":null,"p3":null,"p4":null,"p5":1,"clasificacion":"EMPLEADO","tiempoMeses":2,"fecha":"2026-11-21"},
+  {"id":43,"codigo":"EXP-13","encuestador":"Daniel Rojas","carrera":"Economía","residencia":"Cochabamba","grupo":"G2_EXPERIENCIA","aniosEgreso":11.0,"p1":1,"p2":null,"p3":null,"p4":null,"p5":0,"clasificacion":"EMPLEADO","tiempoMeses":6,"fecha":"2026-11-21"},
+  {"id":44,"codigo":"EXP-14","encuestador":"Mateo Ulloa","carrera":"Administración","residencia":"Cochabamba","grupo":"G2_EXPERIENCIA","aniosEgreso":7.9,"p1":1,"p2":null,"p3":null,"p4":null,"p5":1,"clasificacion":"EMPLEADO","tiempoMeses":4,"fecha":"2026-11-21"},
+  {"id":45,"codigo":"EXP-15","encuestador":"Diego Arias","carrera":"Ingeniería Comercial","residencia":"Cochabamba","grupo":"G2_EXPERIENCIA","aniosEgreso":5.8,"p1":1,"p2":null,"p3":null,"p4":null,"p5":1,"clasificacion":"EMPLEADO","tiempoMeses":2,"fecha":"2026-11-21"},
+  {"id":46,"codigo":"EXP-16","encuestador":"Ignacio Miranda Lara","carrera":"Marketing","residencia":"Cochabamba","grupo":"G2_EXPERIENCIA","aniosEgreso":8.5,"p1":1,"p2":null,"p3":null,"p4":null,"p5":1,"clasificacion":"EMPLEADO","tiempoMeses":3,"fecha":"2026-11-21"},
+  {"id":47,"codigo":"EXP-17","encuestador":"Matias Rojas Delgadillo","carrera":"Administración","residencia":"Cochabamba","grupo":"G2_EXPERIENCIA","aniosEgreso":6.4,"p1":0,"p2":1,"p3":1,"p4":1,"p5":null,"clasificacion":"DESEMPLEADO_ACTIVO","tiempoMeses":5,"fecha":"2026-11-21"},
+  {"id":48,"codigo":"EXP-18","encuestador":"Daniel Rojas","carrera":"Finanzas","residencia":"Cochabamba","grupo":"G2_EXPERIENCIA","aniosEgreso":7.1,"p1":1,"p2":null,"p3":null,"p4":null,"p5":1,"clasificacion":"EMPLEADO","tiempoMeses":1,"fecha":"2026-11-21"},
+  {"id":49,"codigo":"EXP-19","encuestador":"Mateo Ulloa","carrera":"Economía","residencia":"Cochabamba","grupo":"G2_EXPERIENCIA","aniosEgreso":9.2,"p1":1,"p2":null,"p3":null,"p4":null,"p5":1,"clasificacion":"EMPLEADO","tiempoMeses":4,"fecha":"2026-11-21"},
+  {"id":50,"codigo":"EXP-20","encuestador":"Diego Arias","carrera":"Contaduría","residencia":"Cochabamba","grupo":"G2_EXPERIENCIA","aniosEgreso":6.7,"p1":1,"p2":null,"p3":null,"p4":null,"p5":1,"clasificacion":"EMPLEADO","tiempoMeses":2,"fecha":"2026-11-21"},
+  {"id":51,"codigo":"EXP-21","encuestador":"Ignacio Miranda Lara","carrera":"Administración","residencia":"Cochabamba","grupo":"G2_EXPERIENCIA","aniosEgreso":8.0,"p1":1,"p2":null,"p3":null,"p4":null,"p5":1,"clasificacion":"EMPLEADO","tiempoMeses":3,"fecha":"2026-11-22"},
+  {"id":52,"codigo":"EXP-22","encuestador":"Matias Rojas Delgadillo","carrera":"Comercio Exterior","residencia":"Cochabamba","grupo":"G2_EXPERIENCIA","aniosEgreso":5.6,"p1":1,"p2":null,"p3":null,"p4":null,"p5":1,"clasificacion":"EMPLEADO","tiempoMeses":4,"fecha":"2026-11-22"},
+  {"id":53,"codigo":"EXP-23","encuestador":"Daniel Rojas","carrera":"Finanzas","residencia":"Cochabamba","grupo":"G2_EXPERIENCIA","aniosEgreso":7.4,"p1":1,"p2":null,"p3":null,"p4":null,"p5":0,"clasificacion":"EMPLEADO","tiempoMeses":2,"fecha":"2026-11-22"},
+  {"id":54,"codigo":"EXP-24","encuestador":"Mateo Ulloa","carrera":"Economía","residencia":"Cochabamba","grupo":"G2_EXPERIENCIA","aniosEgreso":6.9,"p1":1,"p2":null,"p3":null,"p4":null,"p5":1,"clasificacion":"EMPLEADO","tiempoMeses":5,"fecha":"2026-11-22"},
+  {"id":55,"codigo":"EXP-25","encuestador":"Diego Arias","carrera":"Ingeniería Financiera","residencia":"Cochabamba","grupo":"G2_EXPERIENCIA","aniosEgreso":8.7,"p1":1,"p2":null,"p3":null,"p4":null,"p5":1,"clasificacion":"EMPLEADO","tiempoMeses":3,"fecha":"2026-11-22"},
+  {"id":56,"codigo":"EXP-26","encuestador":"Ignacio Miranda Lara","carrera":"Administración","residencia":"Cochabamba","grupo":"G2_EXPERIENCIA","aniosEgreso":6.3,"p1":1,"p2":null,"p3":null,"p4":null,"p5":1,"clasificacion":"EMPLEADO","tiempoMeses":2,"fecha":"2026-11-22"},
+  {"id":57,"codigo":"EXP-27","encuestador":"Matias Rojas Delgadillo","carrera":"Marketing","residencia":"Cochabamba","grupo":"G2_EXPERIENCIA","aniosEgreso":7.8,"p1":1,"p2":null,"p3":null,"p4":null,"p5":0,"clasificacion":"EMPLEADO","tiempoMeses":6,"fecha":"2026-11-22"},
+  {"id":58,"codigo":"EXP-28","encuestador":"Daniel Rojas","carrera":"Contaduría","residencia":"Cochabamba","grupo":"G2_EXPERIENCIA","aniosEgreso":12.0,"p1":1,"p2":null,"p3":null,"p4":null,"p5":1,"clasificacion":"EMPLEADO","tiempoMeses":4,"fecha":"2026-11-22"},
+  {"id":59,"codigo":"EXP-29","encuestador":"Mateo Ulloa","carrera":"Economía","residencia":"Cochabamba","grupo":"G2_EXPERIENCIA","aniosEgreso":5.9,"p1":1,"p2":null,"p3":null,"p4":null,"p5":1,"clasificacion":"EMPLEADO","tiempoMeses":1,"fecha":"2026-11-22"},
+  {"id":60,"codigo":"EXP-30","encuestador":"Diego Arias","carrera":"Administración","residencia":"Cochabamba","grupo":"G2_EXPERIENCIA","aniosEgreso":8.3,"p1":1,"p2":null,"p3":null,"p4":null,"p5":1,"clasificacion":"EMPLEADO","tiempoMeses":3,"fecha":"2026-11-22"}
+];
+
+// Cargar datos de simulación
+function cargarSimulados() {
+    if (encuestas.length > 0 && !confirm('Tienes datos guardados. ¿Deseas reemplazar la base de datos actual con los 60 datos del ejemplo simulado?')) {
+        return;
+    }
+    encuestas = JSON.parse(JSON.stringify(DATOS_SIMULADOS_DEFAULT));
+    guardarEnStorage();
+    mostrarNotificacion('Se han cargado los 60 registros del ejemplo simulado con éxito.', 'success');
+}
+
+// Vaciar base de datos
+function vaciarBaseDatos() {
+    if (confirm('ADVERTENCIA: ¿Estás seguro de borrar TODAS las encuestas recolectadas? Esta acción no se puede deshacer.')) {
+        encuestas = [];
+        guardarEnStorage();
+        mostrarNotificacion('Base de datos vaciada.', 'info');
+    }
+}
+
+// Actualizar toda la interfaz de usuario
+function actualizarVista() {
+    actualizarBarrasMuestra();
+    renderizarTabla();
+    calcularEstadisticas();
+    generarCodigoR();
+    sugerirCodigo();
+}
+
+// Barras de progreso muestral
+function actualizarBarrasMuestra() {
+    const g1Count = encuestas.filter(e => e.grupo === 'G1_RECIEN').length;
+    const g2Count = encuestas.filter(e => e.grupo === 'G2_EXPERIENCIA').length;
+    const totalCount = encuestas.length;
+
+    const g1Pct = Math.min(100, Math.round((g1Count / OBJETIVO_MUESTRA_G1) * 100));
+    const g2Pct = Math.min(100, Math.round((g2Count / OBJETIVO_MUESTRA_G2) * 100));
+    const totalPct = Math.min(100, Math.round((totalCount / (OBJETIVO_MUESTRA_G1 + OBJETIVO_MUESTRA_G2)) * 100));
+
+    const elG1Count = document.getElementById('count-g1');
+    const elG1Bar = document.getElementById('bar-g1');
+    const elG2Count = document.getElementById('count-g2');
+    const elG2Bar = document.getElementById('bar-g2');
+    const elTotalCount = document.getElementById('count-total');
+    const elTotalBar = document.getElementById('bar-total');
+
+    if (elG1Count) elG1Count.textContent = `${g1Count} / ${OBJETIVO_MUESTRA_G1} (${g1Pct}%)`;
+    if (elG1Bar) elG1Bar.style.width = `${g1Pct}%`;
+    if (elG2Count) elG2Count.textContent = `${g2Count} / ${OBJETIVO_MUESTRA_G2} (${g2Pct}%)`;
+    if (elG2Bar) elG2Bar.style.width = `${g2Pct}%`;
+    if (elTotalCount) elTotalCount.textContent = `${totalCount} / ${OBJETIVO_MUESTRA_G1 + OBJETIVO_MUESTRA_G2} (${totalPct}%)`;
+    if (elTotalBar) elTotalBar.style.width = `${totalPct}%`;
+}
+
+// Renderizar tabla
+function renderizarTabla() {
+    const tbody = document.getElementById('tabla-encuestas-body');
+    const badgeTotal = document.getElementById('total-registros-badge');
+    if (!tbody) return;
+
+    if (badgeTotal) badgeTotal.textContent = `${encuestas.length} registros`;
+
+    const filtroGrupo = document.getElementById('filtro-grupo')?.value || 'TODOS';
+    const busqueda = document.getElementById('busqueda-tabla')?.value.toLowerCase() || '';
+
+    const filtradas = encuestas.filter(e => {
+        if (filtroGrupo !== 'TODOS' && e.grupo !== filtroGrupo) return false;
+        if (busqueda) {
+            const str = `${e.codigo} ${e.carrera} ${e.encuestador} ${e.clasificacion}`.toLowerCase();
+            return str.includes(busqueda);
+        }
+        return true;
+    });
+
+    if (filtradas.length === 0) {
+        tbody.innerHTML = `
+            <tr>
+                <td colspan="8" class="text-center py-8 text-slate-400 font-medium">
+                    <i class="fas fa-inbox text-3xl mb-2 block"></i>
+                    No se encontraron encuestas registradas.
+                </td>
+            </tr>
+        `;
+        return;
+    }
+
+    tbody.innerHTML = filtradas.map((e) => {
+        const grupoBadge = e.grupo === 'G1_RECIEN' 
+            ? '<span class="px-2 py-0.5 text-xs font-semibold rounded bg-sky-100 text-sky-800">G1: Recién (0-2a)</span>'
+            : '<span class="px-2 py-0.5 text-xs font-semibold rounded bg-indigo-100 text-indigo-800">G2: >5 años</span>';
+
+        const formalBadge = e.p5 === 1
+            ? '<span class="inline-flex items-center gap-1 text-xs font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200"><i class="fas fa-check-circle"></i> Formal (1)</span>'
+            : '<span class="inline-flex items-center gap-1 text-xs font-bold text-rose-700 bg-rose-50 px-2 py-0.5 rounded border border-rose-200"><i class="fas fa-times-circle"></i> No formal (0)</span>';
+
+        let clasifBadge = '';
+        if (e.clasificacion === 'EMPLEADO') {
+            clasifBadge = '<span class="text-xs font-medium text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded">Empleado</span>';
+        } else if (e.clasificacion === 'DESEMPLEADO_ACTIVO') {
+            clasifBadge = '<span class="text-xs font-medium text-amber-700 bg-amber-50 px-2 py-0.5 rounded">Desempleado Activo</span>';
+        } else {
+            clasifBadge = '<span class="text-xs font-medium text-slate-500 bg-slate-100 px-2 py-0.5 rounded">Inactivo Laboral</span>';
+        }
+
+        return `
+            <tr class="hover:bg-slate-50 transition border-b border-slate-100 text-sm">
+                <td class="py-3 px-3 font-semibold text-slate-800">${e.codigo}</td>
+                <td class="py-3 px-3">${grupoBadge}</td>
+                <td class="py-3 px-3 font-medium text-slate-700">${e.carrera}</td>
+                <td class="py-3 px-3">${clasifBadge}</td>
+                <td class="py-3 px-3">${formalBadge}</td>
+                <td class="py-3 px-3 font-bold text-slate-800">${e.tiempoMeses} meses</td>
+                <td class="py-3 px-3 text-slate-500 text-xs">${e.encuestador.split(' ')[0]}</td>
+                <td class="py-3 px-3 text-right">
+                    <button onclick="eliminarEncuesta(${e.id})" class="text-rose-500 hover:text-rose-700 hover:bg-rose-50 p-1.5 rounded transition" title="Eliminar">
+                        <i class="fas fa-trash-alt"></i>
+                    </button>
+                </td>
+            </tr>
+        `;
+    }).join('');
+}
+
+// Estadísticas matemáticas
+function calcularEstadisticas() {
+    const g1 = encuestas.filter(e => e.grupo === 'G1_RECIEN');
+    const g2 = encuestas.filter(e => e.grupo === 'G2_EXPERIENCIA');
+
+    const n1 = g1.length;
+    const n2 = g2.length;
+
+    const x1 = g1.filter(e => e.p5 === 1).length;
+    const x2 = g2.filter(e => e.p5 === 1).length;
+
+    const p1 = n1 > 0 ? (x1 / n1) : 0;
+    const p2 = n2 > 0 ? (x2 / n2) : 0;
+
+    const tiemposG1 = g1.map(e => e.tiempoMeses);
+    const tiemposG2 = g2.map(e => e.tiempoMeses);
+
+    const mediaG1 = tiemposG1.length > 0 ? (tiemposG1.reduce((a, b) => a + b, 0) / n1) : 0;
+    const mediaG2 = tiemposG2.length > 0 ? (tiemposG2.reduce((a, b) => a + b, 0) / n2) : 0;
+
+    document.getElementById('stat-n1').textContent = n1;
+    document.getElementById('stat-x1').textContent = x1;
+    document.getElementById('stat-p1').textContent = `${(p1 * 100).toFixed(1)}%`;
+    document.getElementById('stat-media1').textContent = `${mediaG1.toFixed(2)} meses`;
+
+    document.getElementById('stat-n2').textContent = n2;
+    document.getElementById('stat-x2').textContent = x2;
+    document.getElementById('stat-p2').textContent = `${(p2 * 100).toFixed(1)}%`;
+    document.getElementById('stat-media2').textContent = `${mediaG2.toFixed(2)} meses`;
+
+    const divResultadosZ = document.getElementById('resultados-prueba-z');
+    if (!divResultadosZ) return;
+
+    if (n1 < 5 || n2 < 5) {
+        divResultadosZ.innerHTML = `
+            <div class="p-4 bg-slate-50 border rounded-lg text-slate-500 text-sm">
+                <i class="fas fa-info-circle mr-1"></i> Se necesitan al menos 5 encuestas por grupo para calcular las pruebas estadísticas preliminares.
+            </div>
+        `;
+        return;
+    }
+
+    const pPonderada = (x1 + x2) / (n1 + n2);
+    const errorEstandar = Math.sqrt(pPonderada * (1 - pPonderada) * ((1 / n1) + (1 / n2)));
+    const zCalc = errorEstandar > 0 ? ((p1 - p2) / errorEstandar) : 0;
+    const zCritico = -1.645;
+    const pValue = normalCDF(zCalc);
+
+    const seRechazaH0 = zCalc < zCritico && pValue < 0.05;
+
+    divResultadosZ.innerHTML = `
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
+            <div class="bg-slate-50 p-3 rounded-lg border">
+                <span class="text-xs text-slate-500 block">Proporción Combinada (p̄)</span>
+                <span class="text-lg font-bold text-slate-800">${pPonderada.toFixed(4)}</span>
+            </div>
+            <div class="bg-slate-50 p-3 rounded-lg border">
+                <span class="text-xs text-slate-500 block">Error Estándar (EE)</span>
+                <span class="text-lg font-bold text-slate-800">${errorEstandar.toFixed(4)}</span>
+            </div>
+            <div class="bg-slate-50 p-3 rounded-lg border">
+                <span class="text-xs text-slate-500 block">Estadístico Z Calculado</span>
+                <span class="text-lg font-bold ${zCalc < zCritico ? 'text-rose-600' : 'text-slate-800'}">${zCalc.toFixed(4)}</span>
+            </div>
+            <div class="bg-slate-50 p-3 rounded-lg border">
+                <span class="text-xs text-slate-500 block">Valor p (Unilateral)</span>
+                <span class="text-lg font-bold ${pValue < 0.05 ? 'text-emerald-600' : 'text-slate-800'}">${pValue < 0.0001 ? '< 0.0001' : pValue.toFixed(4)}</span>
+            </div>
+        </div>
+
+        <div class="p-4 rounded-lg border ${seRechazaH0 ? 'bg-emerald-50 border-emerald-300' : 'bg-slate-50 border-slate-300'}">
+            <div class="flex items-start gap-3">
+                <div class="text-2xl ${seRechazaH0 ? 'text-emerald-600' : 'text-slate-500'}">
+                    <i class="fas ${seRechazaH0 ? 'fa-check-double' : 'fa-info-circle'}"></i>
+                </div>
+                <div>
+                    <h4 class="font-bold text-sm ${seRechazaH0 ? 'text-emerald-900' : 'text-slate-800'}">
+                        Decisión: ${seRechazaH0 ? 'Se RECHAZA la Hipótesis Nula (H₀)' : 'No se rechaza la Hipótesis Nula (H₀) aún'}
+                    </h4>
+                    <p class="text-xs mt-1 ${seRechazaH0 ? 'text-emerald-800' : 'text-slate-600'}">
+                        ${seRechazaH0 
+                            ? `Como Z calculado (${zCalc.toFixed(2)}) < Z crítico (${zCritico}) y valor p (${pValue.toFixed(4)}) < 0.05, existe evidencia estadística suficiente para afirmar que la proporción de contratación formal de recién egresados (p₁ = ${(p1*100).toFixed(1)}%) es significativamente MENOR que la de los profesionales con más de 5 años de trayectoria (p₂ = ${(p2*100).toFixed(1)}%).`
+                            : `Con los datos actuales, Z calculado (${zCalc.toFixed(2)}) no es menor que el valor crítico de -1.645 o el valor p (${pValue.toFixed(4)}) es mayor a 0.05. Se debe continuar recolectando hasta completar los 37 de cada grupo.`
+                        }
+                    </p>
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+function normalCDF(z) {
+    const t = 1 / (1 + 0.2316419 * Math.abs(z));
+    const d = 0.3989423 * Math.exp(-z * z / 2);
+    let p = d * t * (0.3193815 + t * (-0.3565638 + t * (1.781478 + t * (-1.821256 + t * 1.330274))));
+    if (z > 0) p = 1 - p;
+    return p;
+}
+
+function generarCodigoR() {
+    const textarea = document.getElementById('codigo-r-generado');
+    if (!textarea) return;
+
+    const g1 = encuestas.filter(e => e.grupo === 'G1_RECIEN');
+    const g2 = encuestas.filter(e => e.grupo === 'G2_EXPERIENCIA');
+
+    const tiemposG1 = g1.map(e => e.tiempoMeses).join(', ');
+    const tiemposG2 = g2.map(e => e.tiempoMeses).join(', ');
+
+    const x1 = g1.filter(e => e.p5 === 1).length;
+    const x2 = g2.filter(e => e.p5 === 1).length;
+    const n1 = g1.length;
+    const n2 = g2.length;
+
+    const script = `# =====================================================================
+# UNIVERSIDAD CATÓLICA BOLIVIANA "SAN PABLO" - COCHABAMBA
+# Investigación: Inserción Laboral (Recién Egresados vs >5 años)
+# Estudiantes: Ignacio Miranda, Matias Rojas, Daniel Rojas, Mateo Ulloa, Diego Arias
+# Docente: Ayma Romay Ariel Isaias
+# Script sincronizado con datos reales recolectados: ${encuestas.length} encuestas
+# =====================================================================
+
+# 1. Vectores de Tiempo para conseguir el primer empleo (meses)
+grupo1 <- c(${tiemposG1 || '/* esperando datos del Grupo 1 */'})
+grupo2 <- c(${tiemposG2 || '/* esperando datos del Grupo 2 */'})
+
+# Medias
+cat("--- MEDIAS DE TIEMPO (MESES) ---\\n")
+mean_g1 <- mean(grupo1)
+mean_g2 <- mean(grupo2)
+cat("Media Grupo 1 (Recién egresados):", mean_g1, "meses\\n")
+cat("Media Grupo 2 (> 5 años egreso):", mean_g2, "meses\\n\\n")
+
+# 2. Pruebas de Normalidad (Shapiro-Wilk)
+cat("--- PRUEBA DE NORMALIDAD (SHAPIRO-WILK) ---\\n")
+print(shapiro.test(grupo1))
+print(shapiro.test(grupo2))
+
+# 3. Prueba de Homogeneidad de Varianzas (Levene)
+cat("--- PRUEBA DE HOMOGENEIDAD (LEVENE) ---\\n")
+if (!require("car")) install.packages("car", dependencies=TRUE)
+library(car)
+datos_combinados <- c(grupo1, grupo2)
+factor_grupo <- factor(c(rep("Recién", length(grupo1)), rep("Mayor Trayectoria", length(grupo2))))
+leveneTest(datos_combinados ~ factor_grupo, center=median)
+
+# 4. Gráficos Exploratorios
+par(mfrow=c(1, 2))
+hist(grupo1, main="Histograma G1 (Recién)", xlab="Meses", col="skyblue", border="white")
+hist(grupo2, main="Histograma G2 (>5 años)", xlab="Meses", col="royalblue", border="white")
+par(mfrow=c(1, 1))
+boxplot(grupo1, grupo2, names=c("Recién Egresados (G1)", "> 5 años (G2)"),
+        main="Comparación de Tiempos para Primer Empleo", ylab="Meses", col=c("skyblue", "royalblue"))
+
+# 5. Comparación no paramétrica: Prueba U de Mann-Whitney (Wilcoxon)
+cat("--- PRUEBA U DE MANN-WHITNEY ---\\n")
+wilcox.test(grupo1, grupo2, alternative="greater", exact=FALSE)
+
+# 6. Prueba Z para Dos Proporciones Independientes (Empleo Formal)
+# Exitos: Grupo 1 = ${x1} de ${n1}; Grupo 2 = ${x2} de ${n2}
+cat("--- PRUEBA Z DE DOS PROPORCIONES (EMPLEO FORMAL) ---\\n")
+prop.test(c(${x1}, ${x2}), c(${n1}, ${n2}), alternative="less", correct=FALSE)
+`;
+
+    textarea.value = script;
+}
+
+function copiarCodigoR() {
+    const textarea = document.getElementById('codigo-r-generado');
+    if (!textarea) return;
+    textarea.select();
+    navigator.clipboard.writeText(textarea.value).then(() => {
+        mostrarNotificacion('Código de R copiado al portapapeles.', 'success');
+    });
+}
+
+function exportarCSV() {
+    if (encuestas.length === 0) {
+        alert('No hay encuestas para exportar.');
+        return;
+    }
+
+    const headers = [
+        'ID', 'Codigo', 'Fecha', 'Encuestador', 'Carrera', 'Residencia',
+        'Grupo', 'Anios_Egreso', 'P1_Trabajo_Remunerado', 'P2_Busca_Trabajo',
+        'P3_Actividades_4sem', 'P4_Disponibilidad', 'Clasificacion_Laboral',
+        'P5_Empleo_Formal', 'Tiempo_Primer_Empleo_Meses'
+    ];
+
+    const rows = encuestas.map(e => [
+        e.id,
+        `"${e.codigo}"`,
+        e.fecha,
+        `"${e.encuestador}"`,
+        `"${e.carrera}"`,
+        `"${e.residencia}"`,
+        `"${e.grupo}"`,
+        e.aniosEgreso,
+        e.p1,
+        e.p2 === null ? '' : e.p2,
+        e.p3 === null ? '' : e.p3,
+        e.p4 === null ? '' : e.p4,
+        `"${e.clasificacion}"`,
+        e.p5 === null ? '' : e.p5,
+        e.tiempoMeses
+    ]);
+
+    const csvContent = '\uFEFF' + [headers.join(';'), ...rows.map(r => r.join(';'))].join('\r\n');
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.setAttribute('href', url);
+    link.setAttribute('download', `encuestas_empleo_cochabamba_${new Date().toISOString().split('T')[0]}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    mostrarNotificacion('Archivo CSV para Excel descargado.', 'success');
+}
+
+function exportarJSON() {
+    if (encuestas.length === 0) {
+        alert('No hay datos para exportar.');
+        return;
+    }
+    const blob = new Blob([JSON.stringify(encuestas, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.setAttribute('href', url);
+    link.setAttribute('download', `respaldo_encuestas_${new Date().toISOString().split('T')[0]}.json`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    mostrarNotificacion('Copia de seguridad JSON descargada.', 'success');
+}
+
+function importarJSON(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        try {
+            const data = JSON.parse(e.target.result);
+            if (Array.isArray(data)) {
+                data.forEach(item => {
+                    const index = encuestas.findIndex(existente => existente.codigo === item.codigo);
+                    if (index >= 0) {
+                        encuestas[index] = item;
+                    } else {
+                        encuestas.push(item);
+                    }
+                });
+                guardarEnStorage();
+                mostrarNotificacion(`Sincronización completada con éxito.`, 'success');
+            } else {
+                alert('El archivo no tiene el formato JSON de lista válido.');
+            }
+        } catch (err) {
+            alert('Error al leer el archivo JSON: ' + err.message);
+        }
+    };
+    reader.readAsText(file);
+    event.target.value = '';
+}
+
+function mostrarNotificacion(mensaje, tipo = 'info') {
+    const toast = document.createElement('div');
+    const colorBg = tipo === 'success' ? 'bg-emerald-600' : (tipo === 'error' ? 'bg-rose-600' : 'bg-slate-800');
+    toast.className = `fixed bottom-5 right-5 z-50 text-white px-5 py-3 rounded-lg shadow-xl text-sm font-medium flex items-center gap-2 transform transition-all duration-300 translate-y-10 opacity-0 ${colorBg}`;
+    toast.innerHTML = `<i class="fas ${tipo === 'success' ? 'fa-check-circle' : 'fa-info-circle'}"></i> <span>${mensaje}</span>`;
+    document.body.appendChild(toast);
+
+    setTimeout(() => {
+        toast.classList.remove('translate-y-10', 'opacity-0');
+    }, 10);
+
+    setTimeout(() => {
+        toast.classList.add('opacity-0', 'translate-y-10');
+        setTimeout(() => toast.remove(), 300);
+    }, 3500);
+}
+
+function cambiarPestana(idTab) {
+    document.querySelectorAll('.tab-content').forEach(tab => tab.classList.add('hidden'));
+    document.querySelectorAll('.tab-btn').forEach(btn => {
+        btn.classList.remove('border-indigo-600', 'text-indigo-600', 'font-bold');
+        btn.classList.add('border-transparent', 'text-slate-500');
+    });
+
+    const activeTab = document.getElementById(`tab-${idTab}`);
+    const activeBtn = document.getElementById(`btn-tab-${idTab}`);
+
+    if (activeTab) activeTab.classList.remove('hidden');
+    if (activeBtn) {
+        activeBtn.classList.remove('border-transparent', 'text-slate-500');
+        activeBtn.classList.add('border-indigo-600', 'text-indigo-600', 'font-bold');
+    }
+}
+    </script>
 </body>
 </html>
